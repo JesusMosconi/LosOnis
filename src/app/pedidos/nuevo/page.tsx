@@ -1,0 +1,2 @@
+import { redirect } from "next/navigation";import { getSession } from "@/lib/session";import { BackHeader } from "@/components/AppHeader";import { PedidoForm } from "@/components/PedidoForm";
+const today=()=>new Date().toLocaleDateString("en-CA",{timeZone:"America/Argentina/Buenos_Aires"});export default async function Page(){if(!await getSession())redirect("/login");return <><BackHeader title="Nuevo pedido"/><main className="form-main"><PedidoForm pedido={{nombre:"",telefono:"",tipoTrabajo:"",descripcion:"",fechaConfirmacion:today(),montoTotal:""}}/></main></>}

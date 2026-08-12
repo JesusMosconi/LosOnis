@@ -1,0 +1,1 @@
+import Link from "next/link";export function BottomNav(){return <nav className="bottom-nav"><Link href="/calendario"><span className="material-symbols-outlined">calendar_today</span>Calendario</Link><Link className="active" href="/pedidos"><span className="material-symbols-outlined">assignment</span>Pedidos</Link></nav>}
