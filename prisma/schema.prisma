@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+datasource db {
+  provider = "postgresql"
+}
+
+enum EstadoPedido {
+  EN_PROCESO
+  ENTREGADO
+}
+enum Turno {
+  MANANA
+  TARDE
+}
+enum EstadoTarea {
+  PENDIENTE
+  EN_PROCESO
+  REALIZADO
+  NO_CUMPLIDO
+}
+
+model Usuario {
+  id String @id @default(cuid())
+  nombre String
+  pin String
+  tareasActualizadas Tarea[] @relation("ActualizadoPor")
+  createdAt DateTime @default(now())
+}
+model Pedido {
+  id String @id @default(cuid())
+  nombre String
+  telefono String
+  tipoTrabajo String
+  descripcion String?
+  fechaConfirmacion DateTime @default(now()) @db.Date
+  montoTotal Decimal @db.Decimal(12, 2)
+  estado EstadoPedido @default(EN_PROCESO)
+  tareas Tarea[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Tarea {
+  id String @id @default(cuid())
+  pedidoId String
+  pedido Pedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  fecha DateTime @db.Date
+  turno Turno
+  descripcion String
+  estado EstadoTarea @default(PENDIENTE)
+  reprogramadaAId String? @unique
+  reprogramadaA Tarea? @relation("Reprogramacion", fields: [reprogramadaAId], references: [id], onDelete: SetNull)
+  reprogramadaDesde Tarea? @relation("Reprogramacion")
+  actualizadoPorId String?
+  actualizadoPor Usuario? @relation("ActualizadoPor", fields: [actualizadoPorId], references: [id], onDelete: SetNull)
+  actualizadoEn DateTime?
+  createdAt DateTime @default(now())
+  @@index([pedidoId])
+  @@index([fecha, turno])
+  @@index([actualizadoPorId])
+}
