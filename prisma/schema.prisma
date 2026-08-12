@@ -52,6 +52,7 @@ model Tarea {
   reprogramadaAId String? @unique
   reprogramadaA Tarea? @relation("Reprogramacion", fields: [reprogramadaAId], references: [id], onDelete: SetNull)
   reprogramadaDesde Tarea? @relation("Reprogramacion")
+  motivoReprogramacion String?
   actualizadoPorId String?
   actualizadoPor Usuario? @relation("ActualizadoPor", fields: [actualizadoPorId], references: [id], onDelete: SetNull)
   actualizadoEn DateTime?
