@@ -15,10 +15,10 @@ enum Turno {
   TARDE
 }
 enum EstadoTarea {
-  PENDIENTE
-  EN_PROCESO
+  PROGRAMADO
   REALIZADO
   NO_CUMPLIDO
+  REPROGRAMADO
 }
 
 model Usuario {
@@ -48,7 +48,7 @@ model Tarea {
   fecha DateTime @db.Date
   turno Turno
   descripcion String
-  estado EstadoTarea @default(PENDIENTE)
+  estado EstadoTarea @default(PROGRAMADO)
   reprogramadaAId String? @unique
   reprogramadaA Tarea? @relation("Reprogramacion", fields: [reprogramadaAId], references: [id], onDelete: SetNull)
   reprogramadaDesde Tarea? @relation("Reprogramacion")
