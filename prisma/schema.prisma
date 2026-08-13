@@ -31,7 +31,7 @@ model Usuario {
 model Pedido {
   id String @id @default(cuid())
   nombre String
-  telefono String
+  telefono String?
   tipoTrabajo String
   descripcion String?
   fechaConfirmacion DateTime @default(now()) @db.Date
