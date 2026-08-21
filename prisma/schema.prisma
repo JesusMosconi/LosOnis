@@ -20,11 +20,16 @@ enum EstadoTarea {
   NO_CUMPLIDO
   REPROGRAMADO
 }
+enum Role {
+  ADMIN
+  OPERARIO
+}
 
 model Usuario {
   id String @id @default(cuid())
   nombre String
   pin String
+  role Role @default(ADMIN)
   tareasActualizadas Tarea[] @relation("ActualizadoPor")
   createdAt DateTime @default(now())
 }
