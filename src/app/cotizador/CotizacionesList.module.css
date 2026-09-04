@@ -1,0 +1,52 @@
+.quoteCard.draftCard > i {
+  background: #16a34a;
+}
+
+.quoteStatus {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.confirmation {
+  min-height: 46px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border: 1px solid #86efac;
+  border-radius: 12px;
+  background: #dcfce7;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 1px 3px #0000000d;
+}
+
+.confirmation :global(.material-symbols-outlined) {
+  font-size: 21px;
+}
+
+.titleGroup {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.titleGroup small {
+  color: var(--on-surface-variant);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+:global(:root[data-theme="dark"]) .quoteStatus {
+  background: #123d27;
+  color: #86efac;
+}
+
+:global(:root[data-theme="dark"]) .confirmation {
+  border-color: #166534;
+  background: #123d27;
+  color: #86efac;
+}

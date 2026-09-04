@@ -129,30 +129,45 @@ model SincronizacionCatalogo {
 }
 
 model Cotizacion {
-  id                 String           @id @default(cuid())
-  numero             Int              @unique @default(autoincrement())
-  estado             EstadoCotizacion @default(BORRADOR)
+  id                 String                @id @default(cuid())
+  numero             Int                   @unique @default(autoincrement())
+  estado             EstadoCotizacion      @default(BORRADOR)
   clienteNombre      String
   clienteTelefono    String?
   titulo             String
   descripcion        String?
-  subtotalMateriales Decimal          @db.Decimal(14, 2)
-  porcentajeGastos   Decimal          @default(0) @db.Decimal(7, 4)
-  montoGastos        Decimal          @default(0) @db.Decimal(14, 2)
-  porcentajeManoObra Decimal          @default(0) @db.Decimal(7, 4)
-  montoManoObra      Decimal          @default(0) @db.Decimal(14, 2)
-  total              Decimal          @db.Decimal(14, 2)
+  subtotalMateriales Decimal               @db.Decimal(14, 2)
+  porcentajeGastos   Decimal               @default(0) @db.Decimal(7, 4)
+  montoGastos        Decimal               @default(0) @db.Decimal(14, 2)
+  porcentajeManoObra Decimal               @default(0) @db.Decimal(7, 4)
+  montoManoObra      Decimal               @default(0) @db.Decimal(14, 2)
+  montoAdicionales   Decimal               @default(0) @db.Decimal(14, 2)
+  total              Decimal               @db.Decimal(14, 2)
   notas              String?
-  validaHasta        DateTime?        @db.Date
+  validaHasta        DateTime?             @db.Date
   creadaPorId        String?
-  creadaPor          Usuario?         @relation("CotizacionCreadaPor", fields: [creadaPorId], references: [id], onDelete: SetNull)
+  creadaPor          Usuario?              @relation("CotizacionCreadaPor", fields: [creadaPorId], references: [id], onDelete: SetNull)
   items              ItemCotizacion[]
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  adicionales        AdicionalCotizacion[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
 
   @@index([estado, createdAt])
   @@index([clienteNombre])
   @@index([creadaPorId])
+}
+
+model AdicionalCotizacion {
+  id           String     @id @default(cuid())
+  cotizacionId String
+  cotizacion   Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+  descripcion  String
+  monto        Decimal    @db.Decimal(14, 2)
+  orden        Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([cotizacionId, orden])
 }
 
 model ItemCotizacion {

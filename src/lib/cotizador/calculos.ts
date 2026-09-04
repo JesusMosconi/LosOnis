@@ -7,17 +7,23 @@ export type LineaCalculable = {
   precioUnitario: DecimalInput;
 };
 
+export type AdicionalCalculable = {
+  monto: DecimalInput;
+};
+
 export type TotalesCotizacion = {
   subtotalMateriales: Prisma.Decimal;
   porcentajeGastos: Prisma.Decimal;
   montoGastos: Prisma.Decimal;
   porcentajeManoObra: Prisma.Decimal;
   montoManoObra: Prisma.Decimal;
+  montoAdicionales: Prisma.Decimal;
   total: Prisma.Decimal;
   subtotales: Prisma.Decimal[];
 };
 
 const money = (value: Prisma.Decimal) => value.toDecimalPlaces(2);
+const ceilingTen = (value: Prisma.Decimal) => value.div(10).ceil().mul(10);
 
 function decimal(value: DecimalInput, field: string) {
   try {
@@ -39,6 +45,7 @@ export function calcularCotizacion(
   lineas: LineaCalculable[],
   porcentajeGastosInput: DecimalInput,
   porcentajeManoObraInput: DecimalInput,
+  adicionales: AdicionalCalculable[] = [],
 ): TotalesCotizacion {
   if (lineas.length === 0) throw new Error("La cotización debe incluir al menos un material");
 
@@ -56,9 +63,14 @@ export function calcularCotizacion(
   );
   const porcentajeGastos = percentage(porcentajeGastosInput, "Porcentaje de gastos");
   const porcentajeManoObra = percentage(porcentajeManoObraInput, "Porcentaje de mano de obra");
-  const montoGastos = money(subtotalMateriales.mul(porcentajeGastos).div(100));
+  const montoGastos = ceilingTen(subtotalMateriales.mul(porcentajeGastos).div(100));
   const baseManoObra = subtotalMateriales.add(montoGastos);
-  const montoManoObra = money(baseManoObra.mul(porcentajeManoObra).div(100));
+  const montoManoObra = ceilingTen(baseManoObra.mul(porcentajeManoObra).div(100));
+  const montoAdicionales = money(adicionales.reduce((total, adicional, index) => {
+    const monto = decimal(adicional.monto, `Monto del adicional ${index + 1}`);
+    if (monto.isNegative()) throw new Error(`El monto del adicional ${index + 1} no puede ser negativo`);
+    return total.add(monto);
+  }, new Prisma.Decimal(0)));
 
   return {
     subtotalMateriales,
@@ -66,7 +78,8 @@ export function calcularCotizacion(
     montoGastos,
     porcentajeManoObra,
     montoManoObra,
-    total: money(baseManoObra.add(montoManoObra)),
+    montoAdicionales,
+    total: money(baseManoObra.add(montoManoObra).add(montoAdicionales)),
     subtotales,
   };
 }

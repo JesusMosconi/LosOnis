@@ -1,152 +1,70 @@
 import { Prisma } from "@/generated/prisma/client";
-import { calcularCotizacion } from "@/lib/cotizador/calculos";
+import { prepareQuote, serializeQuote } from "@/lib/cotizador/validacion";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-type InputItem = {
-  itemCatalogoId?: unknown;
-  nombre?: unknown;
-  sku?: unknown;
-  descripcion?: unknown;
-  unidad?: unknown;
-  cantidad?: unknown;
-  precioUnitario?: unknown;
-};
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
 
-function text(value: unknown, maxLength: number, required = false) {
-  if (value == null && !required) return null;
-  if (typeof value !== "string") throw new Error("Campo de texto inválido");
-  const cleaned = value.trim();
-  if ((required && !cleaned) || cleaned.length > maxLength) throw new Error("Campo de texto inválido");
-  return cleaned || null;
+function positiveInteger(value: string | null, fallback: number) {
+  if (value == null) return fallback;
+  if (!/^\d+$/.test(value) || Number(value) < 1) throw new Error("Paginación inválida");
+  return Number(value);
 }
 
-function decimal(value: unknown, field: string, scale: number) {
-  if (typeof value !== "string" && typeof value !== "number") {
-    throw new Error(`${field} inválido`);
-  }
-  const normalized = String(value).trim().replace(",", ".");
-  if (!new RegExp(`^\\d+(?:\\.\\d{1,${scale}})?$`).test(normalized)) {
-    throw new Error(`${field} inválido`);
-  }
-  return new Prisma.Decimal(normalized);
-}
-
-function serializeQuote(quote: Awaited<ReturnType<typeof createQuote>>) {
-  return {
-    ...quote,
-    subtotalMateriales: quote.subtotalMateriales.toFixed(2),
-    porcentajeGastos: quote.porcentajeGastos.toString(),
-    montoGastos: quote.montoGastos.toFixed(2),
-    porcentajeManoObra: quote.porcentajeManoObra.toString(),
-    montoManoObra: quote.montoManoObra.toFixed(2),
-    total: quote.total.toFixed(2),
-    items: quote.items.map((item) => ({
-      ...item,
-      cantidad: item.cantidad.toString(),
-      precioUnitario: item.precioUnitario.toFixed(2),
-      subtotal: item.subtotal.toFixed(2),
-    })),
-  };
-}
-
-async function createQuote(body: Record<string, unknown>, userId: string) {
-  const rawItems = body.items;
-  if (!Array.isArray(rawItems) || rawItems.length === 0 || rawItems.length > 200) {
-    throw new Error("La cotización debe tener entre 1 y 200 materiales");
-  }
-  const inputItems = rawItems as InputItem[];
-  const clienteNombre = text(body.clienteNombre, 160, true) as string;
-  const clienteTelefono = text(body.clienteTelefono, 50);
-  const titulo = text(body.titulo, 200, true) as string;
-  const descripcion = text(body.descripcion, 4000);
-  const notas = text(body.notas, 4000);
-  if (body.estado != null && body.estado !== "BORRADOR" && body.estado !== "FINALIZADA") {
-    throw new Error("Estado de cotización inválido");
-  }
-  const estado = body.estado === "FINALIZADA" ? "FINALIZADA" : "BORRADOR";
-  const porcentajeGastos = decimal(body.porcentajeGastos ?? 0, "Porcentaje de gastos", 4);
-  const porcentajeManoObra = decimal(body.porcentajeManoObra ?? 0, "Porcentaje de mano de obra", 4);
-  const validaHastaRaw = body.validaHasta;
-  const validaHasta =
-    validaHastaRaw == null || validaHastaRaw === ""
-      ? null
-      : typeof validaHastaRaw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(validaHastaRaw)
-        ? new Date(`${validaHastaRaw}T12:00:00Z`)
-        : (() => { throw new Error("Fecha de validez inválida"); })();
-
-  return prisma.$transaction(async (tx) => {
-    const catalogIds = inputItems
-      .map((item) => item.itemCatalogoId)
-      .filter((id): id is string => typeof id === "string" && Boolean(id));
-    const catalogItems = await tx.itemCatalogo.findMany({
-      where: { id: { in: [...new Set(catalogIds)] }, activo: true, producto: { activo: true } },
-      include: { producto: { select: { urlOrigen: true } } },
-    });
-    const catalogById = new Map(catalogItems.map((item) => [item.id, item]));
-    if (catalogById.size !== new Set(catalogIds).size) {
-      throw new Error("Uno o más materiales del catálogo no existen o están inactivos");
+export async function GET(request: Request) {
+  if (!(await getSession())) return Response.json({ error: "No autorizado" }, { status: 401 });
+  try {
+    const params = new URL(request.url).searchParams;
+    const page = positiveInteger(params.get("page"), 1);
+    const pageSize = Math.min(positiveInteger(params.get("pageSize"), DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
+    const estado = params.get("estado");
+    if (estado !== null && estado !== "BORRADOR" && estado !== "FINALIZADA") {
+      throw new Error("Estado de cotización inválido");
     }
-
-    const lines = inputItems.map((item, index) => {
-      const cantidad = decimal(item.cantidad, `Cantidad del material ${index + 1}`, 3);
-      const catalogItem =
-        typeof item.itemCatalogoId === "string" ? catalogById.get(item.itemCatalogoId) : undefined;
-      if (catalogItem) {
-        return {
-          itemCatalogoId: catalogItem.id,
-          nombre: catalogItem.nombre,
-          sku: catalogItem.sku,
-          descripcion: text(item.descripcion, 1000),
-          unidad: text(item.unidad, 50),
-          cantidad,
-          precioUnitario: catalogItem.precio,
-          urlOrigen: catalogItem.producto.urlOrigen,
-        };
-      }
-      if (item.itemCatalogoId) throw new Error(`Material ${index + 1} inválido`);
-      return {
-        itemCatalogoId: null,
-        nombre: text(item.nombre, 200, true) as string,
-        sku: text(item.sku, 100),
-        descripcion: text(item.descripcion, 1000),
-        unidad: text(item.unidad, 50),
-        cantidad,
-        precioUnitario: decimal(item.precioUnitario, `Precio del material ${index + 1}`, 2),
-        urlOrigen: null,
-      };
-    });
-    const totals = calcularCotizacion(lines, porcentajeGastos, porcentajeManoObra);
-
-    return tx.cotizacion.create({
-      data: {
-        estado,
-        clienteNombre,
-        clienteTelefono,
-        titulo,
-        descripcion,
-        notas,
-        validaHasta,
-        creadaPorId: userId,
-        subtotalMateriales: totals.subtotalMateriales,
-        porcentajeGastos: totals.porcentajeGastos,
-        montoGastos: totals.montoGastos,
-        porcentajeManoObra: totals.porcentajeManoObra,
-        montoManoObra: totals.montoManoObra,
-        total: totals.total,
-        items: {
-          create: lines.map((line, index) => ({
-            ...line,
-            subtotal: totals.subtotales[index],
-            orden: index,
-          })),
+    const clienteNombre = params.get("clienteNombre")?.trim();
+    const where: Prisma.CotizacionWhereInput = {
+      ...(estado ? { estado } : {}),
+      ...(clienteNombre ? { clienteNombre: { contains: clienteNombre, mode: "insensitive" } } : {}),
+    };
+    const [quotes, total] = await prisma.$transaction([
+      prisma.cotizacion.findMany({
+        where,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          numero: true,
+          estado: true,
+          titulo: true,
+          clienteNombre: true,
+          clienteTelefono: true,
+          validaHasta: true,
+          subtotalMateriales: true,
+          total: true,
+          createdAt: true,
+          updatedAt: true,
         },
-      },
-      include: { items: { orderBy: { orden: "asc" } } },
+      }),
+      prisma.cotizacion.count({ where }),
+    ]);
+    return Response.json({
+      items: quotes.map((quote) => ({
+        ...quote,
+        subtotalMateriales: quote.subtotalMateriales.toFixed(2),
+        total: quote.total.toFixed(2),
+      })),
+      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
     });
-  });
+  } catch (error) {
+    return Response.json(
+      { error: error instanceof Error ? error.message : "No se pudieron listar las cotizaciones" },
+      { status: 400 },
+    );
+  }
 }
 
 export async function POST(request: Request) {
@@ -155,7 +73,56 @@ export async function POST(request: Request) {
   try {
     const body: unknown = await request.json();
     if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("Solicitud inválida");
-    const quote = await createQuote(body as Record<string, unknown>, session.id);
+    const quote = await prisma.$transaction(async (tx) => {
+      const { validated, lines, adicionales, totals } = await prepareQuote(body as Record<string, unknown>, tx, {
+        tituloOpcional: true,
+      });
+      const created = await tx.cotizacion.create({
+        data: {
+          estado: validated.estado,
+          clienteNombre: validated.clienteNombre,
+          clienteTelefono: validated.clienteTelefono,
+          titulo: validated.titulo ?? "",
+          descripcion: validated.descripcion,
+          notas: validated.notas,
+          validaHasta: validated.validaHasta,
+          creadaPorId: session.id,
+          subtotalMateriales: totals.subtotalMateriales,
+          porcentajeGastos: totals.porcentajeGastos,
+          montoGastos: totals.montoGastos,
+          porcentajeManoObra: totals.porcentajeManoObra,
+          montoManoObra: totals.montoManoObra,
+          montoAdicionales: totals.montoAdicionales,
+          total: totals.total,
+          items: { create: lines.map((line, index) => ({
+            ...line,
+            subtotal: totals.subtotales[index],
+            orden: index,
+          })) },
+          adicionales: { create: adicionales.map((adicional, index) => ({
+            ...adicional,
+            orden: index,
+          })) },
+        },
+        include: {
+          items: { orderBy: { orden: "asc" } },
+          adicionales: { orderBy: { orden: "asc" } },
+        },
+      });
+      if (validated.titulo) return created;
+
+      const date = new Date().toLocaleDateString("es-AR", {
+        timeZone: "America/Argentina/Buenos_Aires",
+      });
+      return tx.cotizacion.update({
+        where: { id: created.id },
+        data: { titulo: `Cotización #${created.numero} - ${date}` },
+        include: {
+          items: { orderBy: { orden: "asc" } },
+          adicionales: { orderBy: { orden: "asc" } },
+        },
+      });
+    });
     return Response.json(serializeQuote(quote), { status: 201 });
   } catch (error) {
     return Response.json(
