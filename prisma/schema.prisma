@@ -2,6 +2,7 @@ generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
 }
+
 datasource db {
   provider = "postgresql"
 }
@@ -10,10 +11,12 @@ enum EstadoPedido {
   EN_PROCESO
   ENTREGADO
 }
+
 enum Turno {
   MANANA
   TARDE
 }
+
 enum EstadoTarea {
   PROGRAMADO
   REALIZADO
@@ -21,42 +24,190 @@ enum EstadoTarea {
   REPROGRAMADO
 }
 
+enum TipoProductoCatalogo {
+  SIMPLE
+  VARIABLE
+}
+
+enum EstadoSincronizacionCatalogo {
+  EN_PROCESO
+  COMPLETADA
+  PARCIAL
+  FALLIDA
+}
+
+enum EstadoCotizacion {
+  BORRADOR
+  FINALIZADA
+  ANULADA
+}
+
 model Usuario {
-  id String @id @default(cuid())
-  nombre String
-  pin String
-  tareasActualizadas Tarea[] @relation("ActualizadoPor")
-  createdAt DateTime @default(now())
+  id                  String       @id @default(cuid())
+  nombre              String
+  pin                 String
+  tareasActualizadas  Tarea[]      @relation("ActualizadoPor")
+  cotizacionesCreadas Cotizacion[] @relation("CotizacionCreadaPor")
+  createdAt           DateTime     @default(now())
 }
+
+model ProductoCatalogo {
+  id                   String               @id @default(cuid())
+  proveedor            String               @default("ACERCO")
+  productoExternoId    Int
+  tipo                 TipoProductoCatalogo
+  nombre               String
+  sku                  String?
+  urlOrigen            String
+  activo               Boolean              @default(true)
+  ultimaSincronizacion DateTime?
+  ultimoError          String?
+  items                ItemCatalogo[]
+  categorias           CategoriaCatalogo[]
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  @@unique([proveedor, productoExternoId])
+  @@unique([proveedor, urlOrigen])
+  @@index([nombre])
+  @@index([activo])
+}
+
+model CategoriaCatalogo {
+  id        String             @id @default(cuid())
+  proveedor String             @default("ACERCO")
+  nombre    String
+  slug      String
+  urlOrigen String?
+  productos ProductoCatalogo[]
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@unique([proveedor, slug])
+  @@index([nombre])
+}
+
+model ItemCatalogo {
+  id                   String           @id @default(cuid())
+  productoId           String
+  producto             ProductoCatalogo @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  identificadorExterno String           @unique
+  varianteExternaId    Int?             @unique
+  nombre               String
+  textoBusqueda        String           @default("")
+  sku                  String?
+  atributos            Json
+  precio               Decimal          @db.Decimal(14, 2)
+  enStock              Boolean?
+  activo               Boolean          @default(true)
+  precioActualizadoEn  DateTime
+  ultimaSincronizacion DateTime
+  itemsCotizacion      ItemCotizacion[]
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  @@index([productoId])
+  @@index([nombre])
+  @@index([textoBusqueda])
+  @@index([sku])
+  @@index([activo])
+}
+
+model SincronizacionCatalogo {
+  id                  String                       @id @default(cuid())
+  estado              EstadoSincronizacionCatalogo @default(EN_PROCESO)
+  urlOrigen           String
+  paginasProcesadas   Int                          @default(0)
+  productosProcesados Int                          @default(0)
+  itemsProcesados     Int                          @default(0)
+  errores             Int                          @default(0)
+  detalleError        String?
+  iniciadaEn          DateTime                     @default(now())
+  finalizadaEn        DateTime?
+
+  @@index([estado, iniciadaEn])
+}
+
+model Cotizacion {
+  id                 String           @id @default(cuid())
+  numero             Int              @unique @default(autoincrement())
+  estado             EstadoCotizacion @default(BORRADOR)
+  clienteNombre      String
+  clienteTelefono    String?
+  titulo             String
+  descripcion        String?
+  subtotalMateriales Decimal          @db.Decimal(14, 2)
+  porcentajeGastos   Decimal          @default(0) @db.Decimal(7, 4)
+  montoGastos        Decimal          @default(0) @db.Decimal(14, 2)
+  porcentajeManoObra Decimal          @default(0) @db.Decimal(7, 4)
+  montoManoObra      Decimal          @default(0) @db.Decimal(14, 2)
+  total              Decimal          @db.Decimal(14, 2)
+  notas              String?
+  validaHasta        DateTime?        @db.Date
+  creadaPorId        String?
+  creadaPor          Usuario?         @relation("CotizacionCreadaPor", fields: [creadaPorId], references: [id], onDelete: SetNull)
+  items              ItemCotizacion[]
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([estado, createdAt])
+  @@index([clienteNombre])
+  @@index([creadaPorId])
+}
+
+model ItemCotizacion {
+  id             String        @id @default(cuid())
+  cotizacionId   String
+  cotizacion     Cotizacion    @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+  itemCatalogoId String?
+  itemCatalogo   ItemCatalogo? @relation(fields: [itemCatalogoId], references: [id], onDelete: SetNull)
+  nombre         String
+  sku            String?
+  descripcion    String?
+  unidad         String?
+  cantidad       Decimal       @db.Decimal(12, 3)
+  precioUnitario Decimal       @db.Decimal(14, 2)
+  subtotal       Decimal       @db.Decimal(14, 2)
+  urlOrigen      String?
+  orden          Int
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([cotizacionId, orden])
+  @@index([itemCatalogoId])
+}
+
 model Pedido {
-  id String @id @default(cuid())
-  nombre String
-  telefono String?
-  tipoTrabajo String
-  descripcion String?
-  fechaConfirmacion DateTime @default(now()) @db.Date
-  montoTotal Decimal @db.Decimal(12, 2)
-  estado EstadoPedido @default(EN_PROCESO)
-  tareas Tarea[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String       @id @default(cuid())
+  nombre            String
+  telefono          String?
+  tipoTrabajo       String
+  descripcion       String?
+  fechaConfirmacion DateTime     @default(now()) @db.Date
+  montoTotal        Decimal      @db.Decimal(12, 2)
+  estado            EstadoPedido @default(EN_PROCESO)
+  tareas            Tarea[]
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 }
+
 model Tarea {
-  id String @id @default(cuid())
-  pedidoId String
-  pedido Pedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
-  fecha DateTime @db.Date
-  turno Turno
-  descripcion String
-  estado EstadoTarea @default(PROGRAMADO)
-  reprogramadaAId String? @unique
-  reprogramadaA Tarea? @relation("Reprogramacion", fields: [reprogramadaAId], references: [id], onDelete: SetNull)
-  reprogramadaDesde Tarea? @relation("Reprogramacion")
+  id                   String      @id @default(cuid())
+  pedidoId             String
+  pedido               Pedido      @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  fecha                DateTime    @db.Date
+  turno                Turno
+  descripcion          String
+  estado               EstadoTarea @default(PROGRAMADO)
+  reprogramadaAId      String?     @unique
+  reprogramadaA        Tarea?      @relation("Reprogramacion", fields: [reprogramadaAId], references: [id], onDelete: SetNull)
+  reprogramadaDesde    Tarea?      @relation("Reprogramacion")
   motivoReprogramacion String?
-  actualizadoPorId String?
-  actualizadoPor Usuario? @relation("ActualizadoPor", fields: [actualizadoPorId], references: [id], onDelete: SetNull)
-  actualizadoEn DateTime?
-  createdAt DateTime @default(now())
+  actualizadoPorId     String?
+  actualizadoPor       Usuario?    @relation("ActualizadoPor", fields: [actualizadoPorId], references: [id], onDelete: SetNull)
+  actualizadoEn        DateTime?
+  createdAt            DateTime    @default(now())
+
   @@index([pedidoId])
   @@index([fecha, turno])
   @@index([actualizadoPorId])

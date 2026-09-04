@@ -10,6 +10,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
+    "catalogo:sync": "tsx scripts/sync-catalogo.ts",
+    "catalogo:test": "tsx scripts/scrape-test.ts",
+    "cotizador:test": "tsx --test src/lib/cotizador/*.test.ts src/lib/catalogo/*.test.ts",
     "postinstall": "prisma generate"
   },
   "keywords": [],
@@ -21,6 +24,7 @@
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "bcryptjs": "^3.0.3",
+    "cheerio": "^1.2.0",
     "jose": "^6.2.8",
     "next": "^16.3.0",
     "pg": "^8.23.0",
@@ -37,7 +41,7 @@
     "eslint-config-next": "^16.3.0",
     "prisma": "^7.9.1",
     "tailwindcss": "^4.3.3",
-    "tsx": "^4.23.12",
+    "tsx": "^4.23.13",
     "typescript": "^6.0.3"
   }
 }
