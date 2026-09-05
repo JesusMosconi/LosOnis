@@ -11,6 +11,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
     "catalogo:sync": "tsx scripts/sync-catalogo.ts",
+    "catalogo:finalize": "tsx scripts/finalize-catalogo.ts",
     "catalogo:test": "tsx scripts/scrape-test.ts",
     "cotizador:test": "tsx --test src/lib/cotizador/*.test.ts src/lib/catalogo/*.test.ts",
     "postinstall": "prisma generate"

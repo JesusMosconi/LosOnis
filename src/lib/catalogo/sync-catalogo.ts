@@ -5,6 +5,7 @@ import { normalizeCatalogSearch } from "./search";
 import { fetchAcercoHtml } from "./acerco/client";
 import { listingPageUrl, parseAcercoListing, parseAcercoProduct } from "./acerco/parser";
 import type { AcercoProduct } from "./acerco/types";
+import { startCatalogSync } from "./sync-state";
 
 const DEFAULT_SOURCE_URL = "https://acerco.com.ar/productos/";
 const PRODUCT_CONCURRENCY = 2;
@@ -147,61 +148,86 @@ async function persistProduct(product: AcercoProduct, synchronizedAt: Date) {
   }, { maxWait: 10_000, timeout: 30_000 });
 }
 
-export async function syncAcercoCatalog(sourceUrl = DEFAULT_SOURCE_URL): Promise<CatalogSyncResult> {
-  const sync = await prisma.sincronizacionCatalogo.create({
-    data: { urlOrigen: sourceUrl },
-  });
+export async function syncAcercoCatalog(
+  sourceUrl = DEFAULT_SOURCE_URL,
+  onStarted?: (syncId: string) => Promise<void>,
+): Promise<CatalogSyncResult> {
+  const sync = await startCatalogSync(sourceUrl);
   const errors: string[] = [];
   let pagesProcessed = 0;
   let productsProcessed = 0;
   let itemsProcessed = 0;
 
+  async function checkpoint() {
+    await prisma.sincronizacionCatalogo.update({
+      where: { id: sync.id },
+      data: {
+        paginasProcesadas: pagesProcessed,
+        productosProcesados: productsProcessed,
+        itemsProcesados: itemsProcessed,
+        errores: errors.length,
+        detalleError: errors.join("\n") || null,
+      },
+    });
+    console.log(`[${sync.id}] ${pagesProcessed} páginas, ${productsProcessed} productos, ${itemsProcessed} ítems, ${errors.length} errores`);
+  }
+
   try {
+    await onStarted?.(sync.id);
     const firstPage = parseAcercoListing(await fetchAcercoHtml(sourceUrl), sourceUrl);
+    if (firstPage.products.length === 0) throw new Error("El listado no devolvió productos");
     const products = new Map(firstPage.products.map((product) => [product.url, product]));
     pagesProcessed = 1;
+    await checkpoint();
 
     for (let page = 2; page <= firstPage.totalPages; page += 1) {
       const pageUrl = listingPageUrl(sourceUrl, page);
       try {
         const listing = parseAcercoListing(await fetchAcercoHtml(pageUrl), pageUrl);
+        if (listing.products.length === 0) throw new Error("El listado no devolvió productos");
         listing.products.forEach((product) => products.set(product.url, product));
         pagesProcessed += 1;
       } catch (error) {
         errors.push(`Listado ${pageUrl}: ${error instanceof Error ? error.message : String(error)}`);
       }
+      await checkpoint();
     }
     if (products.size === 0) throw new Error("El listado no devolvió productos");
 
     const listingProducts = [...products.values()];
-    const productResults = await mapWithConcurrency(
-      listingProducts,
-      PRODUCT_CONCURRENCY,
-      async (listingProduct) => {
-        const scraped = await parseAcercoProduct(
-          await fetchAcercoHtml(listingProduct.url),
-          listingProduct,
-        );
-        const persisted = await persistProduct(scraped, new Date());
-        return { scraped, itemCount: persisted.itemCount };
-      },
-    );
+    console.log(`[${sync.id}] Listado: ${listingProducts.length} productos en ${pagesProcessed}/${firstPage.totalPages} páginas`);
     const seenProductIds: number[] = [];
-    for (let index = 0; index < productResults.length; index += 1) {
-      const result = productResults[index];
-      if (result.status === "rejected") {
-        const listingProduct = listingProducts[index];
-        errors.push(
-          `Producto ${listingProduct.url}: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`,
-        );
-        continue;
-      }
-      seenProductIds.push(result.value.scraped.externalId);
-      productsProcessed += 1;
-      itemsProcessed += result.value.itemCount;
-      result.value.scraped.warnings.forEach((warning) =>
-        errors.push(`${result.value.scraped.url}: ${warning}`),
+    for (let offset = 0; offset < listingProducts.length; offset += PRODUCT_CONCURRENCY) {
+      const batch = listingProducts.slice(offset, offset + PRODUCT_CONCURRENCY);
+      const productResults = await mapWithConcurrency(
+        batch,
+        PRODUCT_CONCURRENCY,
+        async (listingProduct) => {
+          const scraped = await parseAcercoProduct(
+            await fetchAcercoHtml(listingProduct.url),
+            listingProduct,
+          );
+          const persisted = await persistProduct(scraped, new Date());
+          return { scraped, itemCount: persisted.itemCount };
+        },
       );
+      for (let index = 0; index < productResults.length; index += 1) {
+        const result = productResults[index];
+        if (result.status === "rejected") {
+          const listingProduct = batch[index];
+          errors.push(
+            `Producto ${listingProduct.url}: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`,
+          );
+          continue;
+        }
+        seenProductIds.push(result.value.scraped.externalId);
+        productsProcessed += 1;
+        itemsProcessed += result.value.itemCount;
+        result.value.scraped.warnings.forEach((warning) =>
+          errors.push(`${result.value.scraped.url}: ${warning}`),
+        );
+      }
+      await checkpoint();
     }
 
     if (errors.length === 0 && isFullCatalogUrl(sourceUrl)) {

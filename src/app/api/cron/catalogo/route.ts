@@ -1,7 +1,4 @@
-import { syncAcercoCatalog } from "@/lib/catalogo/sync-catalogo";
-
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -12,6 +9,8 @@ export async function GET(request: Request) {
     return Response.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const result = await syncAcercoCatalog();
-  return Response.json(result, { status: result.status === "FALLIDA" ? 500 : 200 });
+  return Response.json(
+    { error: "La sincronización se ejecuta desde GitHub Actions (Catálogo ACERCO)" },
+    { status: 410 },
+  );
 }
