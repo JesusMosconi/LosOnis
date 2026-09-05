@@ -5,13 +5,17 @@ import {
   normalizeCatalogSearch,
 } from "@/lib/catalogo/search";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/session";
+import { canAccessCotizador, getSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  if (!(await getSession())) {
+  const session = await getSession();
+  if (!session) {
     return Response.json({ error: "No autorizado" }, { status: 401 });
+  }
+  if (!canAccessCotizador(session)) {
+    return Response.json({ error: "Acceso exclusivo para Diego" }, { status: 403 });
   }
 
   const params = new URL(request.url).searchParams;

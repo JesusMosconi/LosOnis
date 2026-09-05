@@ -2,13 +2,15 @@ import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/session";
+import { canAccessCotizador, getSession } from "@/lib/session";
 import { CotizacionesList } from "./CotizacionesList";
 
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ creada?: string; actualizada?: string }> }) {
-  if (!(await getSession())) redirect("/login");
+  const session = await getSession();
+  if (!session) redirect("/login");
+  if (!canAccessCotizador(session)) redirect("/calendario");
   const { creada, actualizada } = await searchParams;
   const rows = await prisma.cotizacion.findMany({
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],

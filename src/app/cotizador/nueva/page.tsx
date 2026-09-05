@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
 import { BackHeader } from "@/components/AppHeader";
 import { CotizadorForm } from "@/components/cotizador/CotizadorForm";
-import { getSession } from "@/lib/session";
+import { canAccessCotizador, getSession } from "@/lib/session";
 
 export default async function Page() {
-  if (!(await getSession())) redirect("/login");
+  const session = await getSession();
+  if (!session) redirect("/login");
+  if (!canAccessCotizador(session)) redirect("/calendario");
 
   return (
     <>

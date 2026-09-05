@@ -1,7 +1,7 @@
 import { renderToBuffer } from "@react-pdf/renderer";
 import { CotizacionPdf, type CotizacionPdfData } from "@/lib/cotizador/pdf";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/session";
+import { canAccessCotizador, getSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,7 +27,9 @@ function pdfFilename(createdAt: Date, numero: number, titulo: string) {
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (!(await getSession())) return Response.json({ error: "No autorizado" }, { status: 401 });
+  const session = await getSession();
+  if (!session) return Response.json({ error: "No autorizado" }, { status: 401 });
+  if (!canAccessCotizador(session)) return Response.json({ error: "Acceso exclusivo para Diego" }, { status: 403 });
   const { id } = await params;
   const quote = await prisma.cotizacion.findUnique({
     where: { id },
