@@ -7,9 +7,9 @@ import { CotizacionesList } from "./CotizacionesList";
 
 export const dynamic = "force-dynamic";
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ creada?: string }> }) {
+export default async function Page({ searchParams }: { searchParams: Promise<{ creada?: string; actualizada?: string }> }) {
   if (!(await getSession())) redirect("/login");
-  const { creada } = await searchParams;
+  const { creada, actualizada } = await searchParams;
   const rows = await prisma.cotizacion.findMany({
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     select: {
@@ -32,9 +32,13 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
     <>
       <AppHeader />
       <main className="orders-main">
-        <CotizacionesList cotizaciones={cotizaciones} showCreated={creada === "1"} />
+        <CotizacionesList
+          cotizaciones={cotizaciones}
+          savedId={creada ?? actualizada}
+          savedAction={actualizada ? "updated" : creada ? "created" : undefined}
+        />
       </main>
-      <BottomNav />
+      <BottomNav active="quotes" />
     </>
   );
 }

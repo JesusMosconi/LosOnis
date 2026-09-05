@@ -1,12 +1,15 @@
-.downloadWrap {
+.actionsWrap {
   width: 100%;
   max-width: 720px;
   margin: 0 auto;
   padding: 16px 12px 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
 }
 
-.downloadButton {
-  width: 100%;
+.downloadButton,
+.deleteButton {
   min-height: 48px;
   padding: 0 18px;
   border: 1px solid var(--outline-variant);
@@ -21,10 +24,60 @@
   box-shadow: 0 1px 3px #0000000d;
 }
 
+.deleteButton {
+  padding: 0 18px;
+  border-color: color-mix(in srgb, var(--error) 35%, var(--outline-variant));
+  background: var(--error-container);
+  color: var(--error);
+}
+
 .downloadButton:active {
   transform: translateY(1px);
 }
 
+.modalBackdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  padding: 20px;
+  background: #0b1c3088;
+  display: grid;
+  place-items: center;
+  animation: fadeIn 180ms ease-out;
+}
+
+.confirmModal {
+  width: min(420px, 100%);
+  padding: 26px 22px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 18px;
+  background: var(--surface-lowest);
+  color: var(--on-surface);
+  box-shadow: 0 20px 55px #00000040;
+  text-align: center;
+  animation: modalIn 220ms ease-out;
+}
+
+.confirmModal > :global(.material-symbols-outlined) { color: var(--error); font-size: 46px; }
+.confirmModal h2 { margin: 8px 0; }
+.confirmModal p { margin: 0; color: var(--on-surface-variant); line-height: 1.45; }
+.confirmModal > div { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.confirmModal button { min-height: 46px; border: 1px solid var(--outline-variant); border-radius: 11px; background: var(--surface-lowest); color: var(--on-surface); font-weight: 700; }
+.confirmModal .confirmDelete { border-color: var(--error); background: var(--error); color: white; }
+.confirmModal .deleteError { margin-top: 12px; color: var(--error); font-weight: 700; }
+
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes modalIn { from { opacity: 0; transform: translateY(10px) scale(.97); } }
+
 @media (min-width: 640px) {
-  .downloadWrap { padding: 24px 16px 0; }
+  .actionsWrap { padding: 24px 16px 0; }
+}
+
+@media (max-width: 440px) {
+  .actionsWrap { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modalBackdrop,
+  .confirmModal { animation: none; }
 }

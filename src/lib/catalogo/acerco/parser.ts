@@ -109,6 +109,44 @@ function variationLabels($: cheerio.CheerioAPI): Map<string, Map<string, string>
   return labels;
 }
 
+function calculatorMeterItems(
+  $: cheerio.CheerioAPI,
+  product: AcercoListingProduct,
+  sku: string | null,
+  pricePerMeterInCents: number,
+  inStock: boolean | null,
+): AcercoCatalogItem[] {
+  const select = $("form.cart select[name='wck[custom_mts]']").first();
+  if (!select.length) return [];
+
+  const items = new Map<string, AcercoCatalogItem>();
+  select.find("option[value]").each((_, option) => {
+    const value = $(option).attr("value")?.trim() ?? "";
+    const label = cleanText($(option).text());
+    const rawFactor = value.split(":", 1)[0].replace(",", ".");
+    if (!/^\d+(?:\.\d+)?$/.test(rawFactor) || !label) return;
+
+    const meters = Number(rawFactor);
+    if (!Number.isFinite(meters) || meters <= 0) return;
+    const normalizedMeters = String(meters);
+    const priceInCents = Math.round(pricePerMeterInCents * meters);
+    if (!Number.isSafeInteger(priceInCents)) {
+      throw new Error(`Precio calculado fuera del rango seguro para ${label}`);
+    }
+    items.set(normalizedMeters, {
+      externalKey: `acerco:calculator:${product.externalId}:custom_mts:${normalizedMeters}`,
+      variationId: null,
+      name: `${product.name} — ${label}`,
+      sku,
+      attributes: { Metros: label, tipoPrecio: "metro_lineal" },
+      priceInCents,
+      inStock,
+    });
+  });
+  if (items.size === 0) throw new Error("Calculador por metros sin opciones válidas");
+  return [...items.values()];
+}
+
 function toCatalogItem(
   variation: WooVariation,
   product: AcercoListingProduct,
@@ -221,16 +259,19 @@ export async function parseAcercoProduct(
       .last()
       .text();
     if (!priceText) throw new Error("Producto simple sin precio");
+    const priceInCents = argentinePriceToCents(priceText);
+    const inStock = $(".stock.out-of-stock").length ? false : $(".stock.in-stock").length ? true : null;
+    const calculatedItems = calculatorMeterItems($, { ...product, name }, sku, priceInCents, inStock);
     return {
       ...base,
-      items: [{
+      items: calculatedItems.length ? calculatedItems : [{
         externalKey: `acerco:product:${product.externalId}`,
         variationId: null,
         name,
         sku,
         attributes: {},
-        priceInCents: argentinePriceToCents(priceText),
-        inStock: $(".stock.out-of-stock").length ? false : $(".stock.in-stock").length ? true : null,
+        priceInCents,
+        inStock,
       }],
       warnings: [],
     };

@@ -234,13 +234,17 @@ export function CotizacionPdf({ quote }: { quote: CotizacionPdfData }) {
         <Header quote={quote} />
         {quote.items.map((item, index) => (
           <View key={item.id} style={[styles.row, ...(index % 2 ? [styles.evenRow] : [])]} wrap={false}>
-            <Text style={[styles.providerColumn, styles.provider]}>{item.urlOrigen ? "ACERCO" : "MANUAL"}</Text>
+            <Text style={[styles.providerColumn, styles.provider]}>{item.urlOrigen ? "ACERCO" : item.nombre}</Text>
             <View style={styles.descriptionColumn}>
-              <Text style={styles.itemName}>{item.nombre}</Text>
-              {(item.sku || item.descripcion || item.unidad) && (
-                <Text style={styles.itemDetail}>
-                  {[item.sku && `SKU ${item.sku}`, item.descripcion, item.unidad].filter(Boolean).join(" · ")}
-                </Text>
+              {item.urlOrigen ? (
+                <>
+                  <Text style={styles.itemName}>{item.nombre}</Text>
+                  {(item.descripcion || item.unidad) && (
+                    <Text style={styles.itemDetail}>{[item.descripcion, item.unidad].filter(Boolean).join(" · ")}</Text>
+                  )}
+                </>
+              ) : (
+                <Text style={styles.itemName}>{item.descripcion || item.unidad || "Sin descripción"}</Text>
               )}
             </View>
             <Text style={styles.quantityColumn}>{item.cantidad}</Text>

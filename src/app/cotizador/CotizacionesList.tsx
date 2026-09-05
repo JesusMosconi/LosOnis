@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./CotizacionesList.module.css";
 
 export type CotizacionListItem = {
@@ -31,18 +32,21 @@ const stateLabel = { BORRADOR: "Cotización", FINALIZADA: "Finalizada", ANULADA:
 
 export function CotizacionesList({
   cotizaciones,
-  showCreated = false,
+  savedId,
+  savedAction,
 }: {
   cotizaciones: CotizacionListItem[];
-  showCreated?: boolean;
+  savedId?: string;
+  savedAction?: "created" | "updated";
 }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
-  const [createdNotice, setCreatedNotice] = useState(showCreated);
-  useEffect(() => {
-    if (!createdNotice) return;
-    const timeout = window.setTimeout(() => setCreatedNotice(false), 4500);
-    return () => window.clearTimeout(timeout);
-  }, [createdNotice]);
+  const [savedNotice, setSavedNotice] = useState(Boolean(savedId));
+
+  function closeSavedNotice() {
+    setSavedNotice(false);
+    router.replace("/cotizador", { scroll: false });
+  }
   const normalizedQuery = query.trim().toLocaleLowerCase("es");
   const shown = cotizaciones.filter((quote) =>
     quote.titulo.toLocaleLowerCase("es").includes(normalizedQuery) ||
@@ -50,10 +54,20 @@ export function CotizacionesList({
 
   return (
     <>
-      {createdNotice && (
-        <div className={styles.confirmation} role="status">
-          <span className="material-symbols-outlined">check_circle</span>
-          Cotización creada correctamente.
+      {savedNotice && (
+        <div className={styles.modalBackdrop} role="presentation">
+          <section className={styles.confirmation} role="dialog" aria-modal="true" aria-labelledby="created-title">
+            <span className="material-symbols-outlined">check_circle</span>
+            <h2 id="created-title">Cotización {savedAction === "updated" ? "actualizada" : "creada"}</h2>
+            <p>La cotización se {savedAction === "updated" ? "actualizó" : "guardó"} correctamente.</p>
+            <div className={styles.confirmationActions}>
+              <button type="button" onClick={closeSavedNotice}>Salir</button>
+              <a href={`/api/cotizaciones/${savedId}/pdf`} download>
+                <span className="material-symbols-outlined">picture_as_pdf</span>
+                Descargar PDF
+              </a>
+            </div>
+          </section>
         </div>
       )}
       <section className="orders-tools">

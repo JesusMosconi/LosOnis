@@ -84,3 +84,15 @@ export async function PUT(request: Request, context: Context) {
     );
   }
 }
+
+export async function DELETE(_request: Request, context: Context) {
+  if (!(await getSession())) return Response.json({ error: "No autorizado" }, { status: 401 });
+  try {
+    const { id } = await context.params;
+    await prisma.cotizacion.delete({ where: { id } });
+    return Response.json({ ok: true });
+  } catch (error) {
+    if (isNotFound(error)) return Response.json({ error: "Cotización no encontrada" }, { status: 404 });
+    return Response.json({ error: "No se pudo eliminar la cotización" }, { status: 500 });
+  }
+}

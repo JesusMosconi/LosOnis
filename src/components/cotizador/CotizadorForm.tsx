@@ -83,7 +83,6 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
   const [clienteNombre, setClienteNombre] = useState(cotizacion?.clienteNombre ?? "");
   const [clienteTelefono, setClienteTelefono] = useState(cotizacion?.clienteTelefono ?? "");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
   const [adicionales, setAdicionales] = useState<QuoteAdditional[]>(() =>
     cotizacion?.adicionales.map((adicional) => ({ key: adicional.id, ...adicional })) ?? []);
@@ -240,7 +239,6 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
     }
     setSaving(true);
     setError("");
-    setSuccess("");
     try {
       const response = await fetch(id ? `/api/cotizaciones/${id}` : "/api/cotizaciones", {
         method: id ? "PUT" : "POST",
@@ -269,14 +267,8 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "No se pudo guardar la cotización");
-      if (id) {
-        setSaving(false);
-        setSuccess("Cotización actualizada correctamente.");
-        router.refresh();
-      } else {
-        router.push("/cotizador?creada=1");
-        router.refresh();
-      }
+      const resultId = encodeURIComponent(String(data.id));
+      router.push(id ? `/cotizador?actualizada=${resultId}` : `/cotizador?creada=${resultId}`);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "No se pudo guardar la cotización");
       setSaving(false);
@@ -341,8 +333,8 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
             </label>
             <div className={styles.manualGrid}>
               <label>
-                Unidad
-                <input name="unidad" placeholder="Ej. unidad" />
+                Descripción
+                <input name="unidad" maxLength={200} placeholder="Ej. medidas, terminación o detalle" />
               </label>
               <label>
                 Cantidad
@@ -469,7 +461,7 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
                     type="number"
                     inputMode="decimal"
                     min="0"
-                    step="0.01"
+                    step="1"
                     value={adicional.monto}
                     onChange={(event) => updateAdditional(adicional.key, "monto", event.target.value)}
                   />
@@ -497,7 +489,7 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
               type="number"
               inputMode="decimal"
               min="0"
-              step="0.01"
+              step="1"
               value={porcentajeGastos}
               onChange={(event) => updatePercentage(event.target.value, setPorcentajeGastos)}
             />
@@ -509,7 +501,7 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
               type="number"
               inputMode="decimal"
               min="0"
-              step="0.01"
+              step="1"
               value={porcentajeManoObra}
               onChange={(event) => updatePercentage(event.target.value, setPorcentajeManoObra)}
             />
@@ -525,13 +517,21 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
       </section>
 
       <div className={styles.actionBar}>
-        {error && <p className={styles.saveError} role="alert">{error}</p>}
-        {success && <p className={styles.saveSuccess} role="status">{success}</p>}
         <button type="button" disabled={saving} onClick={saveQuote}>
           <span className="material-symbols-outlined">save</span>
           {saving ? "Guardando…" : id ? "Guardar cambios" : "Guardar cotización"}
         </button>
       </div>
+      {error && (
+        <div className={styles.modalBackdrop} role="presentation">
+          <section className={`${styles.feedbackModal} ${styles.errorModal}`} role="alertdialog" aria-modal="true" aria-labelledby="quote-error-title">
+            <span className="material-symbols-outlined">error</span>
+            <h2 id="quote-error-title">No se pudo guardar</h2>
+            <p>{error}</p>
+            <button type="button" onClick={() => setError("")}>Volver al formulario</button>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

@@ -3,7 +3,7 @@ import { BackHeader } from "@/components/AppHeader";
 import { CotizadorForm, type CotizadorFormData } from "@/components/cotizador/CotizadorForm";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import styles from "./page.module.css";
+import { CotizacionActions } from "./CotizacionActions";
 
 export const dynamic = "force-dynamic";
 
@@ -49,12 +49,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   return (
     <>
       <BackHeader title={quote.titulo} href="/cotizador" />
-      <div className={styles.downloadWrap}>
-        <a className={styles.downloadButton} href={`/api/cotizaciones/${quote.id}/pdf`} download>
-          <span className="material-symbols-outlined">picture_as_pdf</span>
-          Descargar PDF
-        </a>
-      </div>
+      <CotizacionActions id={quote.id} />
       <CotizadorForm id={quote.id} cotizacion={cotizacion} />
     </>
   );
