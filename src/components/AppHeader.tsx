@@ -1,4 +1,22 @@
 import Link from "next/link";
-import {getSession} from "@/lib/session";import {UserMenu} from "./UserMenu";
-export async function AppHeader(){const session=await getSession();return <header className="app-header"><div className="header-brand"><UserMenu nombre={session?.nombre??""}/><Link href="/calendario">Los Onis</Link></div><nav className="header-actions"><Link aria-label="Ir al calendario" className="today" href="/calendario"><span className="material-symbols-outlined">calendar_today</span></Link><Link aria-label="Ir a pedidos" className="header-pedidos" href="/pedidos"><span className="material-symbols-outlined">assignment</span></Link><Link className="header-new-order" href="/pedidos/nuevo"><span className="material-symbols-outlined">add</span><span>Nuevo pedido</span></Link></nav></header>}
-export function BackHeader({title,href="/pedidos"}:{title:string;href?:string}){return <header className="back-header"><Link aria-label="Volver" href={href}><span className="material-symbols-outlined">arrow_back</span></Link><h1>{title}</h1><span className="header-spacer"/></header>}
+import { getSession } from "@/lib/session";
+import { UserMenu } from "./UserMenu";
+
+export async function AppHeader() {
+  const session = await getSession();
+  return (
+    <header className="app-header">
+      <div className="header-brand"><UserMenu nombre={session?.nombre ?? ""} /><Link href="/calendario">Los Onis</Link></div>
+      <nav className="header-actions">
+        <Link aria-label="Ir al calendario" className="today" href="/calendario"><span className="material-symbols-outlined">calendar_today</span></Link>
+        <Link aria-label="Ir a pedidos" className="header-pedidos" href="/pedidos"><span className="material-symbols-outlined">assignment</span></Link>
+        <Link aria-label="Ir a cotizaciones" className="header-cotizador" href="/cotizador"><span className="material-symbols-outlined">request_quote</span></Link>
+        <Link className="header-new-order" href="/pedidos/nuevo"><span className="material-symbols-outlined">add</span><span>Nuevo pedido</span></Link>
+      </nav>
+    </header>
+  );
+}
+
+export function BackHeader({ title, href = "/pedidos" }: { title: string; href?: string }) {
+  return <header className="back-header"><Link aria-label="Volver" href={href}><span className="material-symbols-outlined">arrow_back</span></Link><h1>{title}</h1><span className="header-spacer" /></header>;
+}
