@@ -1,7 +1,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prepareQuote, serializeQuote } from "@/lib/cotizador/validacion";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/session";
+import { canAccessCotizador, getSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,9 @@ function isNotFound(error: unknown) {
 }
 
 export async function GET(_request: Request, context: Context) {
-  if (!(await getSession())) return Response.json({ error: "No autorizado" }, { status: 401 });
+  const session = await getSession();
+  if (!session) return Response.json({ error: "No autorizado" }, { status: 401 });
+  if (!canAccessCotizador(session)) return Response.json({ error: "Acceso exclusivo para Diego" }, { status: 403 });
   const { id } = await context.params;
   const quote = await prisma.cotizacion.findUnique({
     where: { id },
@@ -26,7 +28,9 @@ export async function GET(_request: Request, context: Context) {
 }
 
 export async function PUT(request: Request, context: Context) {
-  if (!(await getSession())) return Response.json({ error: "No autorizado" }, { status: 401 });
+  const session = await getSession();
+  if (!session) return Response.json({ error: "No autorizado" }, { status: 401 });
+  if (!canAccessCotizador(session)) return Response.json({ error: "Acceso exclusivo para Diego" }, { status: 403 });
   try {
     const body: unknown = await request.json();
     if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("Solicitud inválida");
@@ -86,7 +90,9 @@ export async function PUT(request: Request, context: Context) {
 }
 
 export async function DELETE(_request: Request, context: Context) {
-  if (!(await getSession())) return Response.json({ error: "No autorizado" }, { status: 401 });
+  const session = await getSession();
+  if (!session) return Response.json({ error: "No autorizado" }, { status: 401 });
+  if (!canAccessCotizador(session)) return Response.json({ error: "Acceso exclusivo para Diego" }, { status: 403 });
   try {
     const { id } = await context.params;
     await prisma.cotizacion.delete({ where: { id } });

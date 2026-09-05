@@ -2,13 +2,15 @@ import { notFound, redirect } from "next/navigation";
 import { BackHeader } from "@/components/AppHeader";
 import { CotizadorForm, type CotizadorFormData } from "@/components/cotizador/CotizadorForm";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/session";
+import { canAccessCotizador, getSession } from "@/lib/session";
 import { CotizacionActions } from "./CotizacionActions";
 
 export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
-  if (!(await getSession())) redirect("/login");
+  const session = await getSession();
+  if (!session) redirect("/login");
+  if (!canAccessCotizador(session)) redirect("/calendario");
   const { id } = await params;
   const quote = await prisma.cotizacion.findUnique({
     where: { id },
