@@ -34,6 +34,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     items: quote.items.map((item) => ({
       id: item.id,
       itemCatalogoId: item.itemCatalogoId,
+      materialPropioId: item.materialPropioId,
       nombre: item.nombre,
       sku: item.sku,
       descripcion: item.descripcion,

@@ -91,6 +91,34 @@
   font-weight: 700;
 }
 
+.checkboxLabel {
+  min-height: 44px;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px !important;
+  color: var(--on-surface) !important;
+}
+
+.checkboxLabel input {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+.ownSearchHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.ownSearchHeading a {
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .manualToggle {
   flex: 0 0 auto;
   padding: 0 12px;

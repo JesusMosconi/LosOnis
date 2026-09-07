@@ -113,6 +113,20 @@ model ItemCatalogo {
   @@index([activo])
 }
 
+model MaterialPropio {
+  id              String           @id @default(cuid())
+  nombre          String
+  descripcion     String?
+  precioUnitario  Decimal          @db.Decimal(14, 2)
+  activo          Boolean          @default(true)
+  itemsCotizacion ItemCotizacion[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([nombre])
+  @@index([activo])
+}
+
 model SincronizacionCatalogo {
   id                  String                       @id @default(cuid())
   estado              EstadoSincronizacionCatalogo @default(EN_PROCESO)
@@ -171,25 +185,28 @@ model AdicionalCotizacion {
 }
 
 model ItemCotizacion {
-  id             String        @id @default(cuid())
-  cotizacionId   String
-  cotizacion     Cotizacion    @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
-  itemCatalogoId String?
-  itemCatalogo   ItemCatalogo? @relation(fields: [itemCatalogoId], references: [id], onDelete: SetNull)
-  nombre         String
-  sku            String?
-  descripcion    String?
-  unidad         String?
-  cantidad       Decimal       @db.Decimal(12, 3)
-  precioUnitario Decimal       @db.Decimal(14, 2)
-  subtotal       Decimal       @db.Decimal(14, 2)
-  urlOrigen      String?
-  orden          Int
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id               String          @id @default(cuid())
+  cotizacionId     String
+  cotizacion       Cotizacion      @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+  itemCatalogoId   String?
+  itemCatalogo     ItemCatalogo?   @relation(fields: [itemCatalogoId], references: [id], onDelete: SetNull)
+  materialPropioId String?
+  materialPropio   MaterialPropio? @relation(fields: [materialPropioId], references: [id], onDelete: SetNull)
+  nombre           String
+  sku              String?
+  descripcion      String?
+  unidad           String?
+  cantidad         Decimal         @db.Decimal(12, 3)
+  precioUnitario   Decimal         @db.Decimal(14, 2)
+  subtotal         Decimal         @db.Decimal(14, 2)
+  urlOrigen        String?
+  orden            Int
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   @@index([cotizacionId, orden])
   @@index([itemCatalogoId])
+  @@index([materialPropioId])
 }
 
 model Pedido {

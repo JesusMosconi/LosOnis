@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import styles from "./CotizadorForm.module.css";
 
 type CatalogItem = {
@@ -11,9 +12,17 @@ type CatalogItem = {
   price: string;
 };
 
+type OwnMaterial = {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  precioUnitario: string;
+};
+
 type QuoteItem = {
   key: string;
   itemCatalogoId?: string;
+  materialPropioId?: string;
   nombre: string;
   sku?: string | null;
   descripcion?: string | null;
@@ -41,6 +50,7 @@ export type CotizadorFormData = {
   items: Array<{
     id: string;
     itemCatalogoId: string | null;
+    materialPropioId: string | null;
     nombre: string;
     sku: string | null;
     descripcion: string | null;
@@ -65,9 +75,14 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
   const [results, setResults] = useState<CatalogItem[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [ownQuery, setOwnQuery] = useState("");
+  const [ownResults, setOwnResults] = useState<OwnMaterial[]>([]);
+  const [searchingOwn, setSearchingOwn] = useState(false);
+  const [ownSearchError, setOwnSearchError] = useState("");
   const [items, setItems] = useState<QuoteItem[]>(() => cotizacion?.items.map((item) => ({
     key: item.id,
     itemCatalogoId: item.itemCatalogoId ?? undefined,
+    materialPropioId: item.materialPropioId ?? undefined,
     nombre: item.nombre,
     sku: item.sku,
     descripcion: item.descripcion,
@@ -117,6 +132,30 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
       controller.abort();
     };
   }, [query]);
+
+  useEffect(() => {
+    const term = ownQuery.trim();
+    if (!term) return;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setSearchingOwn(true);
+      setOwnSearchError("");
+      try {
+        const response = await fetch(`/api/materiales-propios?q=${encodeURIComponent(term)}`, { signal: controller.signal });
+        if (!response.ok) throw new Error("No se pudo buscar en Mis materiales");
+        const data = (await response.json()) as { items: OwnMaterial[] };
+        setOwnResults(data.items);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setOwnResults([]);
+          setOwnSearchError(error instanceof Error ? error.message : "No se pudo buscar en Mis materiales");
+        }
+      } finally {
+        if (!controller.signal.aborted) setSearchingOwn(false);
+      }
+    }, 350);
+    return () => { window.clearTimeout(timeout); controller.abort(); };
+  }, [ownQuery]);
 
   const totals = useMemo(() => {
     const subtotalMateriales = roundMoney(items.reduce((total, item) => {
@@ -170,6 +209,33 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
     }
   }
 
+  function addOwnMaterial(material: OwnMaterial) {
+    setItems((current) => {
+      const existing = current.find((item) => item.materialPropioId === material.id);
+      if (existing) return current.map((item) => item.key === existing.key
+        ? { ...item, cantidad: String((Number(item.cantidad) || 0) + 1) }
+        : item);
+      return [...current, {
+        key: `own-${material.id}`,
+        materialPropioId: material.id,
+        nombre: material.nombre,
+        descripcion: material.descripcion,
+        unidad: material.descripcion ?? undefined,
+        cantidad: "1",
+        precioUnitario: material.precioUnitario,
+      }];
+    });
+    setOwnQuery("");
+    setOwnResults([]);
+  }
+
+  function changeOwnQuery(value: string) {
+    setOwnQuery(value);
+    setOwnResults([]);
+    setOwnSearchError("");
+    if (!value.trim()) setSearchingOwn(false);
+  }
+
   function updateQuantity(key: string, cantidad: string) {
     setItems((current) => current.map((item) => item.key === key ? { ...item, cantidad } : item));
   }
@@ -200,7 +266,7 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
     setAdicionales((current) => current.filter((adicional) => adicional.key !== key));
   }
 
-  function addManualItem(event: FormEvent<HTMLFormElement>) {
+  async function addManualItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
@@ -208,20 +274,38 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
     const unidad = String(data.get("unidad") ?? "").trim();
     const cantidad = String(data.get("cantidad") ?? "");
     const precioUnitario = String(data.get("precioUnitario") ?? "");
+    const saveAsFrequent = data.get("guardarFrecuente") === "on";
     if (!nombre || !(Number(cantidad) > 0) || !(Number(precioUnitario) >= 0)) {
       setManualError("Completá nombre, cantidad y precio con valores válidos.");
       return;
     }
-    setItems((current) => [...current, {
-      key: `manual-${crypto.randomUUID()}`,
-      nombre,
-      unidad: unidad || undefined,
-      cantidad,
-      precioUnitario,
-    }]);
-    setManualError("");
-    setManualOpen(false);
-    form.reset();
+    try {
+      let materialPropioId: string | undefined;
+      if (saveAsFrequent) {
+        const response = await fetch("/api/materiales-propios", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nombre, descripcion: unidad || null, precioUnitario }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error ?? "No se pudo guardar el material frecuente");
+        materialPropioId = String(result.id);
+      }
+      setItems((current) => [...current, {
+        key: materialPropioId ? `own-${materialPropioId}` : `manual-${crypto.randomUUID()}`,
+        materialPropioId,
+        nombre,
+        descripcion: unidad || undefined,
+        unidad: unidad || undefined,
+        cantidad,
+        precioUnitario,
+      }]);
+      setManualError("");
+      setManualOpen(false);
+      form.reset();
+    } catch (error) {
+      setManualError(error instanceof Error ? error.message : "No se pudo agregar el material");
+    }
   }
 
   async function saveQuote() {
@@ -253,8 +337,9 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
           estado: cotizacion?.estado ?? "BORRADOR",
           porcentajeGastos,
           porcentajeManoObra,
-          items: items.map(({ itemCatalogoId, nombre, sku, descripcion, unidad, cantidad, precioUnitario }) => ({
+          items: items.map(({ itemCatalogoId, materialPropioId, nombre, sku, descripcion, unidad, cantidad, precioUnitario }) => ({
             itemCatalogoId,
+            materialPropioId,
             nombre,
             sku,
             descripcion,
@@ -345,6 +430,10 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
               Precio unitario
               <input name="precioUnitario" type="number" inputMode="decimal" min="0" step="0.01" placeholder="0,00" required />
             </label>
+            <label className={styles.checkboxLabel}>
+              <input name="guardarFrecuente" type="checkbox" />
+              Guardar como material frecuente
+            </label>
             {manualError && <p className={styles.error}>{manualError}</p>}
             <button className={styles.addManual} type="submit">
               <span className="material-symbols-outlined">add_circle</span>
@@ -376,6 +465,38 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
                   <small>{result.sku ? `SKU ${result.sku}` : "Sin SKU"}</small>
                 </span>
                 <span className={styles.resultPrice}>{money.format(Number(result.price))}</span>
+                <span className="material-symbols-outlined">add_circle</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className={styles.ownSearchHeading}>
+          <strong>Mis materiales</strong>
+          <Link href="/cotizador/materiales">Administrar</Link>
+        </div>
+        <div className={styles.searchBox}>
+          <span className="material-symbols-outlined">bookmark</span>
+          <input
+            aria-label="Buscar en Mis materiales"
+            autoComplete="off"
+            value={ownQuery}
+            onChange={(event) => changeOwnQuery(event.target.value)}
+            placeholder="Buscar material frecuente..."
+          />
+          {searchingOwn && <span className={styles.spinner} aria-label="Buscando" />}
+        </div>
+        {(ownResults.length > 0 || ownSearchError || (!searchingOwn && ownQuery.trim() && ownResults.length === 0)) && (
+          <div className={styles.results} aria-live="polite">
+            {ownSearchError && <p className={styles.error}>{ownSearchError}</p>}
+            {!ownSearchError && !searchingOwn && ownResults.length === 0 && <p className={styles.noResults}>No encontramos materiales propios.</p>}
+            {ownResults.map((result) => (
+              <button type="button" className={styles.result} key={result.id} onClick={() => addOwnMaterial(result)}>
+                <span className={styles.resultInfo}>
+                  <strong>{result.nombre}</strong>
+                  <small>{result.descripcion || "Sin descripción"}</small>
+                </span>
+                <span className={styles.resultPrice}>{money.format(Number(result.precioUnitario))}</span>
                 <span className="material-symbols-outlined">add_circle</span>
               </button>
             ))}

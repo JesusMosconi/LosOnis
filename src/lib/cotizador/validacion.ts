@@ -3,6 +3,7 @@ import { calcularCotizacion } from "@/lib/cotizador/calculos";
 
 export type InputItem = {
   itemCatalogoId?: unknown;
+  materialPropioId?: unknown;
   nombre?: unknown;
   sku?: unknown;
   descripcion?: unknown;
@@ -74,6 +75,12 @@ export async function prepareQuote(
   const catalogIds = validated.inputItems
     .map((item) => item.itemCatalogoId)
     .filter((id): id is string => typeof id === "string" && Boolean(id));
+  const ownMaterialIds = validated.inputItems
+    .map((item) => item.materialPropioId)
+    .filter((id): id is string => typeof id === "string" && Boolean(id));
+  if (validated.inputItems.some((item) => item.itemCatalogoId && item.materialPropioId)) {
+    throw new Error("Un material no puede pertenecer al catálogo y a Mis materiales a la vez");
+  }
   const catalogItems = await tx.itemCatalogo.findMany({
     where: { id: { in: [...new Set(catalogIds)] }, activo: true, producto: { activo: true } },
     include: { producto: { select: { urlOrigen: true } } },
@@ -81,6 +88,14 @@ export async function prepareQuote(
   const catalogById = new Map(catalogItems.map((item) => [item.id, item]));
   if (catalogById.size !== new Set(catalogIds).size) {
     throw new Error("Uno o más materiales del catálogo no existen o están inactivos");
+  }
+  const ownMaterials = await tx.materialPropio.findMany({
+    where: { id: { in: [...new Set(ownMaterialIds)] }, activo: true },
+    select: { id: true },
+  });
+  const ownMaterialById = new Set(ownMaterials.map((item) => item.id));
+  if (ownMaterialById.size !== new Set(ownMaterialIds).size) {
+    throw new Error("Uno o más materiales propios no existen o están inactivos");
   }
 
   const lines = validated.inputItems.map((item, index) => {
@@ -91,6 +106,7 @@ export async function prepareQuote(
     if (catalogItem) {
       return {
         itemCatalogoId: catalogItem.id,
+        materialPropioId: null,
         nombre: catalogItem.nombre,
         sku: catalogItem.sku,
         descripcion: text(item.descripcion, 1000),
@@ -101,8 +117,11 @@ export async function prepareQuote(
       };
     }
     if (item.itemCatalogoId) throw new Error(`Material ${index + 1} inválido`);
+    const materialPropioId = typeof item.materialPropioId === "string" ? item.materialPropioId : undefined;
+    if (item.materialPropioId && !materialPropioId) throw new Error(`Material ${index + 1} inválido`);
     return {
       itemCatalogoId: null,
+      materialPropioId: materialPropioId && ownMaterialById.has(materialPropioId) ? materialPropioId : null,
       nombre: text(item.nombre, 200, true) as string,
       sku: text(item.sku, 100),
       descripcion: text(item.descripcion, 1000),
