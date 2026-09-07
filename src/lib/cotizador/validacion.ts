@@ -96,7 +96,7 @@ export async function prepareQuote(
         descripcion: text(item.descripcion, 1000),
         unidad: text(item.unidad, 200),
         cantidad,
-        precioUnitario: catalogItem.precio,
+        precioUnitario: catalogItem.precio.div(10).ceil().mul(10),
         urlOrigen: catalogItem.producto.urlOrigen,
       };
     }

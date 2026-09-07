@@ -129,7 +129,7 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
     }, 0));
     const gastos = Math.max(0, Number(porcentajeGastos) || 0);
     const manoObra = Math.max(0, Number(porcentajeManoObra) || 0);
-    const montoGastos = ceilingTen(subtotalMateriales * gastos / 100);
+    const montoGastos = roundMoney(subtotalMateriales * gastos / 100);
     const baseManoObra = subtotalMateriales + montoGastos;
     const montoManoObra = ceilingTen(baseManoObra * manoObra / 100);
     const montoAdicionales = roundMoney(adicionales.reduce((sum, adicional) => {
@@ -154,7 +154,7 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
         nombre: catalogItem.name,
         sku: catalogItem.sku,
         cantidad: "1",
-        precioUnitario: catalogItem.price,
+        precioUnitario: ceilingTen(Number(catalogItem.price)).toFixed(2),
       }];
     });
     setQuery("");

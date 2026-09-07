@@ -13,14 +13,14 @@ test("calcula materiales, gastos y mano de obra en el orden acordado", () => {
   );
 
   assert.equal(result.subtotalMateriales.toString(), "275");
-  assert.equal(result.montoGastos.toString(), "30");
+  assert.equal(result.montoGastos.toString(), "27.5");
   assert.equal(result.montoManoObra.toString(), "70");
   assert.equal(result.montoAdicionales.toString(), "0");
-  assert.equal(result.total.toString(), "375");
+  assert.equal(result.total.toString(), "372.5");
   assert.deepEqual(result.subtotales.map(String), ["200", "75"]);
 });
 
-test("mantiene subtotales a dos decimales y redondea gastos y mano de obra hacia arriba a $10", () => {
+test("mantiene subtotales y gastos a dos decimales y redondea mano de obra hacia arriba a $10", () => {
   const result = calcularCotizacion(
     [{ cantidad: "0.333", precioUnitario: "10.01" }],
     "7.5",
@@ -28,9 +28,9 @@ test("mantiene subtotales a dos decimales y redondea gastos y mano de obra hacia
   );
 
   assert.equal(result.subtotalMateriales.toFixed(2), "3.33");
-  assert.equal(result.montoGastos.toFixed(2), "10.00");
+  assert.equal(result.montoGastos.toFixed(2), "0.25");
   assert.equal(result.montoManoObra.toFixed(2), "10.00");
-  assert.equal(result.total.toFixed(2), "23.33");
+  assert.equal(result.total.toFixed(2), "13.58");
 });
 
 test("suma los adicionales después de la mano de obra", () => {

@@ -63,7 +63,7 @@ export function calcularCotizacion(
   );
   const porcentajeGastos = percentage(porcentajeGastosInput, "Porcentaje de gastos");
   const porcentajeManoObra = percentage(porcentajeManoObraInput, "Porcentaje de mano de obra");
-  const montoGastos = ceilingTen(subtotalMateriales.mul(porcentajeGastos).div(100));
+  const montoGastos = money(subtotalMateriales.mul(porcentajeGastos).div(100));
   const baseManoObra = subtotalMateriales.add(montoGastos);
   const montoManoObra = ceilingTen(baseManoObra.mul(porcentajeManoObra).div(100));
   const montoAdicionales = money(adicionales.reduce((total, adicional, index) => {

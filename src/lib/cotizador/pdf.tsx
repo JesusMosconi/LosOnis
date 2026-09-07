@@ -36,6 +36,7 @@ const LIGHT_TEXT = "#C9D2DE";
 const BORDER = "#E1E4E8";
 const PALE = "#F4F5F7";
 const MUTED = "#667386";
+const GREEN = "#16804A";
 
 const styles = StyleSheet.create({
   page: {
@@ -132,6 +133,7 @@ const styles = StyleSheet.create({
     color: MUTED,
   },
   totalAmount: { color: NAVY, fontFamily: "Helvetica-Bold" },
+  laborText: { color: GREEN },
   finalTotal: {
     minHeight: 36,
     marginTop: 5,
@@ -254,13 +256,17 @@ export function CotizacionPdf({ quote }: { quote: CotizacionPdfData }) {
         ))}
         <View style={styles.totals} wrap={false}>
           <View style={styles.totalRow}>
-            <Text>Subtotal materiales</Text><Text style={styles.totalAmount}>{formatMoney(quote.subtotalMateriales)}</Text>
+            <Text>Subtotal materiales (A)</Text><Text style={styles.totalAmount}>{formatMoney(quote.subtotalMateriales)}</Text>
           </View>
           <View style={styles.totalRow}>
-            <Text>Insumos y Viáticos</Text><Text style={styles.totalAmount}>{formatMoney(quote.montoGastos)}</Text>
+            <Text>Insumos y Viáticos (B)</Text><Text style={styles.totalAmount}>{formatMoney(quote.montoGastos)}</Text>
           </View>
           <View style={styles.totalRow}>
-            <Text>Mano de obra</Text><Text style={styles.totalAmount}>{formatMoney(quote.montoManoObra)}</Text>
+            <Text>Subtotal costos (A + B)</Text>
+            <Text style={styles.totalAmount}>{formatMoney((Number(quote.subtotalMateriales) + Number(quote.montoGastos)).toFixed(2))}</Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.laborText}>Mano de obra (C)</Text><Text style={[styles.totalAmount, styles.laborText]}>{formatMoney(quote.montoManoObra)}</Text>
           </View>
           {quote.adicionales.map((adicional) => (
             <View style={styles.totalRow} key={adicional.id}>
