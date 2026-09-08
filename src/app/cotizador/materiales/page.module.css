@@ -4,8 +4,9 @@
 .createCard h2, .listHeading h2 { margin: 0; font-size: 19px; }
 .createCard { display: flex; flex-direction: column; gap: 14px; }
 .formGrid { display: grid; grid-template-columns: 1.4fr 1.4fr .8fr; gap: 10px; }
-.formGrid label { display: flex; flex-direction: column; gap: 5px; color: var(--on-surface-variant); font-size: 13px; font-weight: 600; }
+.formGrid label { min-width: 0; display: flex; flex-direction: column; gap: 5px; color: var(--on-surface-variant); font-size: 13px; font-weight: 600; }
 .formGrid input { width: 100%; height: 46px; min-width: 0; padding: 0 12px; border: 1px solid var(--outline-variant); border-radius: 10px; background: var(--surface-lowest); color: var(--on-surface); outline: none; }
+.formGrid label input { margin-top: auto; }
 .formGrid input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent); }
 .createCard > button, .actions button { min-height: 44px; padding: 0 15px; border: 0; border-radius: 10px; background: var(--primary-container); color: var(--on-primary-container); font-weight: 700; }
 .createCard > button { align-self: flex-end; display: flex; align-items: center; gap: 5px; }

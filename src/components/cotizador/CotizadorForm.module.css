@@ -99,9 +99,11 @@
   color: var(--on-surface) !important;
 }
 
-.checkboxLabel input {
+.manualForm .checkboxLabel input {
   width: 20px;
   height: 20px;
+  min-width: 20px;
+  padding: 0;
   flex: 0 0 auto;
 }
 
