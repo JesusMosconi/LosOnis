@@ -77,6 +77,14 @@ export async function POST(request: Request) {
     const body: unknown = await request.json();
     if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("Solicitud inválida");
     const quote = await prisma.$transaction(async (tx) => {
+      // Serializa las altas y corrige instalaciones donde la secuencia todavía
+      // apunta a los números iniciales. Así, la primera nueva cotización es 104.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(1042026)`;
+      await tx.$queryRaw`
+        SELECT setval(pg_get_serial_sequence('"Cotizacion"', 'numero'), 103, true)
+        WHERE (SELECT COALESCE(MAX("numero"), 0) FROM "Cotizacion") < 104
+          AND (SELECT last_value FROM "Cotizacion_numero_seq") <= 104
+      `;
       const { validated, lines, adicionales, totals } = await prepareQuote(body as Record<string, unknown>, tx, {
         tituloOpcional: true,
       });

@@ -1,27 +1,11 @@
 import { renderToBuffer } from "@react-pdf/renderer";
+import { nombreArchivoCotizacion } from "@/lib/cotizador/formatos";
 import { CotizacionPdf, type CotizacionPdfData } from "@/lib/cotizador/pdf";
 import { prisma } from "@/lib/prisma";
 import { canAccessCotizador, getSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-function pdfFilename(createdAt: Date, numero: number, titulo: string) {
-  const dateParts = new Intl.DateTimeFormat("es-AR", {
-    timeZone: "America/Argentina/Buenos_Aires",
-    year: "numeric",
-    month: "2-digit",
-  }).formatToParts(createdAt);
-  const part = (type: Intl.DateTimeFormatPartTypes) => dateParts.find((value) => value.type === type)?.value ?? "";
-  const fecha = `${part("year")}-${part("month")}`;
-  const safeTitle = titulo
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-  return `${fecha}-${numero}${safeTitle ? `-${safeTitle}` : ""}.pdf`;
-}
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -71,7 +55,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   return new Response(bytes, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${pdfFilename(quote.createdAt, quote.numero, quote.titulo)}"`,
+      "Content-Disposition": `attachment; filename="${nombreArchivoCotizacion(quote.createdAt, quote.numero, quote.titulo)}"`,
       "Content-Length": String(bytes.byteLength),
     },
   });
