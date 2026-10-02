@@ -3,6 +3,7 @@ import { BackHeader } from "@/components/AppHeader";
 import { CotizadorForm, type CotizadorFormData } from "@/components/cotizador/CotizadorForm";
 import { prisma } from "@/lib/prisma";
 import { canAccessCotizador, getSession } from "@/lib/session";
+import { formatearCantidad } from "@/lib/cotizador/formatos";
 import { CotizacionActions } from "./CotizacionActions";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +40,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       sku: item.sku,
       descripcion: item.descripcion,
       unidad: item.unidad,
-      cantidad: item.cantidad.toString(),
+      cantidad: formatearCantidad(item.cantidad.toString()),
       precioUnitario: item.precioUnitario.toFixed(2),
     })),
     adicionales: quote.adicionales.map((adicional) => ({

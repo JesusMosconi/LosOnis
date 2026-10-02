@@ -1,5 +1,6 @@
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { EMPRESA } from "@/lib/cotizador/empresa";
+import { formatearCantidad } from "@/lib/cotizador/formatos";
 
 export type CotizacionPdfData = {
   numero: number;
@@ -249,7 +250,7 @@ export function CotizacionPdf({ quote }: { quote: CotizacionPdfData }) {
                 <Text style={styles.itemName}>{item.descripcion || item.unidad || "Sin descripción"}</Text>
               )}
             </View>
-            <Text style={styles.quantityColumn}>{item.cantidad}</Text>
+            <Text style={styles.quantityColumn}>{formatearCantidad(item.cantidad)}</Text>
             <Text style={styles.priceColumn}>{formatMoney(item.precioUnitario)}</Text>
             <Text style={[styles.subtotalColumn, styles.itemSubtotal]}>{formatMoney(item.subtotal)}</Text>
           </View>

@@ -3,6 +3,12 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  calcularSubtotalCantidad,
+  formatearCantidad,
+  normalizarCantidad,
+  parsearCantidad,
+} from "@/lib/cotizador/formatos";
 import styles from "./CotizadorForm.module.css";
 
 type CatalogItem = {
@@ -87,7 +93,7 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
     sku: item.sku,
     descripcion: item.descripcion,
     unidad: item.unidad ?? undefined,
-    cantidad: item.cantidad,
+    cantidad: formatearCantidad(item.cantidad),
     precioUnitario: item.precioUnitario,
   })) ?? []);
   const [manualOpen, setManualOpen] = useState(false);
@@ -159,11 +165,15 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
 
   const totals = useMemo(() => {
     const subtotalMateriales = roundMoney(items.reduce((total, item) => {
-      const cantidad = Number(item.cantidad);
       const precio = Number(item.precioUnitario);
-      const lineSubtotal = Number.isFinite(cantidad) && Number.isFinite(precio)
-        ? roundMoney(cantidad * precio)
-        : 0;
+      let lineSubtotal = 0;
+      try {
+        lineSubtotal = Number.isFinite(precio)
+          ? calcularSubtotalCantidad(item.cantidad, item.precioUnitario)
+          : 0;
+      } catch {
+        lineSubtotal = 0;
+      }
       return total + lineSubtotal;
     }, 0));
     const gastos = Math.max(0, Number(porcentajeGastos) || 0);
@@ -183,9 +193,14 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
     setItems((current) => {
       const existing = current.find((item) => item.itemCatalogoId === catalogItem.id);
       if (existing) {
-        return current.map((item) => item.key === existing.key
-          ? { ...item, cantidad: String((Number(item.cantidad) || 0) + 1) }
-          : item);
+        return current.map((item) => {
+          if (item.key !== existing.key) return item;
+          try {
+            return { ...item, cantidad: formatearCantidad(parsearCantidad(item.cantidad) + 1) };
+          } catch {
+            return item;
+          }
+        });
       }
       return [...current, {
         key: `catalog-${catalogItem.id}`,
@@ -212,9 +227,14 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
   function addOwnMaterial(material: OwnMaterial) {
     setItems((current) => {
       const existing = current.find((item) => item.materialPropioId === material.id);
-      if (existing) return current.map((item) => item.key === existing.key
-        ? { ...item, cantidad: String((Number(item.cantidad) || 0) + 1) }
-        : item);
+      if (existing) return current.map((item) => {
+        if (item.key !== existing.key) return item;
+        try {
+          return { ...item, cantidad: formatearCantidad(parsearCantidad(item.cantidad) + 1) };
+        } catch {
+          return item;
+        }
+      });
       return [...current, {
         key: `own-${material.id}`,
         materialPropioId: material.id,
@@ -275,7 +295,14 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
     const cantidad = String(data.get("cantidad") ?? "");
     const precioUnitario = String(data.get("precioUnitario") ?? "");
     const saveAsFrequent = data.get("guardarFrecuente") === "on";
-    if (!nombre || !(Number(cantidad) > 0) || !(Number(precioUnitario) >= 0)) {
+    let cantidadNormalizada: string;
+    try {
+      cantidadNormalizada = normalizarCantidad(cantidad);
+    } catch (quantityError) {
+      setManualError(quantityError instanceof Error ? quantityError.message : "La cantidad no es válida.");
+      return;
+    }
+    if (!nombre || !(Number(precioUnitario) >= 0)) {
       setManualError("Completá nombre, cantidad y precio con valores válidos.");
       return;
     }
@@ -297,7 +324,7 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
         nombre,
         descripcion: unidad || undefined,
         unidad: unidad || undefined,
-        cantidad,
+        cantidad: formatearCantidad(cantidadNormalizada),
         precioUnitario,
       }]);
       setManualError("");
@@ -315,6 +342,19 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
     }
     if (items.length === 0) {
       setError("Agregá al menos un material.");
+      return;
+    }
+    let cantidadesNormalizadas: string[];
+    try {
+      cantidadesNormalizadas = items.map((item, index) => {
+        try {
+          return normalizarCantidad(item.cantidad);
+        } catch {
+          throw new Error(`La cantidad del material ${index + 1} debe ser mayor a cero, tener hasta 3 decimales y hasta 9 dígitos enteros.`);
+        }
+      });
+    } catch (quantityError) {
+      setError(quantityError instanceof Error ? quantityError.message : "Hay una cantidad inválida.");
       return;
     }
     if (adicionales.some((adicional) => Number(adicional.monto) > 0 && !adicional.descripcion.trim())) {
@@ -337,14 +377,14 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
           estado: cotizacion?.estado ?? "BORRADOR",
           porcentajeGastos,
           porcentajeManoObra,
-          items: items.map(({ itemCatalogoId, materialPropioId, nombre, sku, descripcion, unidad, cantidad, precioUnitario }) => ({
+          items: items.map(({ itemCatalogoId, materialPropioId, nombre, sku, descripcion, unidad, precioUnitario }, index) => ({
             itemCatalogoId,
             materialPropioId,
             nombre,
             sku,
             descripcion,
             unidad,
-            cantidad,
+            cantidad: cantidadesNormalizadas[index],
             precioUnitario,
           })),
           adicionales: adicionales.map(({ descripcion, monto }) => ({ descripcion, monto })),
@@ -423,7 +463,7 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
               </label>
               <label>
                 Cantidad
-                <input name="cantidad" type="number" inputMode="decimal" min="0" step="1" defaultValue="1" required />
+                <input name="cantidad" type="text" inputMode="decimal" defaultValue="1" required />
               </label>
             </div>
             <label>
@@ -531,17 +571,21 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
                   <label>
                     Cantidad
                     <input
-                      type="number"
+                      type="text"
                       inputMode="decimal"
-                      min="0"
-                      step="1"
                       value={item.cantidad}
                       onChange={(event) => updateQuantity(item.key, event.target.value)}
                     />
                   </label>
                   <div>
                     <span>{money.format(Number(item.precioUnitario))} c/u</span>
-                    <strong>{money.format((Number(item.cantidad) || 0) * Number(item.precioUnitario))}</strong>
+                    <strong>{money.format((() => {
+                      try {
+                        return calcularSubtotalCantidad(item.cantidad, item.precioUnitario);
+                      } catch {
+                        return 0;
+                      }
+                    })())}</strong>
                   </div>
                 </div>
               </article>

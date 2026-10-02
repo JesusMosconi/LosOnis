@@ -60,3 +60,26 @@ test("rechaza cantidades, precios y porcentajes inválidos", () => {
   assert.throws(() => calcularCotizacion([{ cantidad: 1, precioUnitario: 1 }], -1, 0));
   assert.throws(() => calcularCotizacion([{ cantidad: 1, precioUnitario: 1 }], 0, 0, [{ monto: -1 }]));
 });
+
+test("calcula y redondea subtotales con cantidades decimales", () => {
+  const mitad = calcularCotizacion([{ cantidad: "0.5", precioUnitario: "10000" }], 0, 0);
+  assert.equal(mitad.subtotales[0].toFixed(2), "5000.00");
+
+  const mitadDeCentavo = calcularCotizacion([{ cantidad: "2.5", precioUnitario: "3333.33" }], 0, 0);
+  assert.equal(mitadDeCentavo.subtotales[0].toFixed(2), "8333.33");
+});
+
+test("calcula una cotización completa con cantidad decimal", () => {
+  const result = calcularCotizacion(
+    [{ cantidad: "0.5", precioUnitario: "10000" }],
+    "10",
+    "20",
+    [{ monto: "250.50" }],
+  );
+
+  assert.equal(result.subtotalMateriales.toFixed(2), "5000.00");
+  assert.equal(result.montoGastos.toFixed(2), "500.00");
+  assert.equal(result.montoManoObra.toFixed(2), "1100.00");
+  assert.equal(result.montoAdicionales.toFixed(2), "250.50");
+  assert.equal(result.total.toFixed(2), "6850.50");
+});

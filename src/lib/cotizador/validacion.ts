@@ -34,6 +34,15 @@ export function decimal(value: unknown, field: string, scale: number) {
   return new Prisma.Decimal(normalized);
 }
 
+function cantidad(value: unknown, field: string) {
+  if (typeof value !== "string" && typeof value !== "number") throw new Error(`${field} inválida`);
+  const normalized = String(value).trim().replace(",", ".");
+  if (!/^\d{1,9}(?:\.\d{1,3})?$/.test(normalized)) throw new Error(`${field} inválida`);
+  const parsed = new Prisma.Decimal(normalized);
+  if (parsed.lessThanOrEqualTo(0)) throw new Error(`${field} debe ser mayor a cero`);
+  return parsed;
+}
+
 export function validateQuoteBody(body: Record<string, unknown>, tituloOpcional = false) {
   const rawItems = body.items;
   if (!Array.isArray(rawItems) || rawItems.length === 0 || rawItems.length > 200) {
@@ -99,7 +108,7 @@ export async function prepareQuote(
   }
 
   const lines = validated.inputItems.map((item, index) => {
-    const cantidad = decimal(item.cantidad, `Cantidad del material ${index + 1}`, 3);
+    const cantidadMaterial = cantidad(item.cantidad, `Cantidad del material ${index + 1}`);
     const catalogItem = typeof item.itemCatalogoId === "string"
       ? catalogById.get(item.itemCatalogoId)
       : undefined;
@@ -111,7 +120,7 @@ export async function prepareQuote(
         sku: catalogItem.sku,
         descripcion: text(item.descripcion, 1000),
         unidad: text(item.unidad, 200),
-        cantidad,
+        cantidad: cantidadMaterial,
         precioUnitario: catalogItem.precio.div(10).ceil().mul(10),
         urlOrigen: catalogItem.producto.urlOrigen,
       };
@@ -126,7 +135,7 @@ export async function prepareQuote(
       sku: text(item.sku, 100),
       descripcion: text(item.descripcion, 1000),
       unidad: text(item.unidad, 200),
-      cantidad,
+      cantidad: cantidadMaterial,
       precioUnitario: decimal(item.precioUnitario, `Precio del material ${index + 1}`, 2),
       urlOrigen: null,
     };
