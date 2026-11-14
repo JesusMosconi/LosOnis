@@ -48,3 +48,9 @@ body{font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;text-ren
 .form-card input,.form-card textarea,.form-card select,.search input{font-size:16px;line-height:1.45}
 /* Acceso secundario del cotizador. */
 .quote-materials-link { width: fit-content; min-height: 44px; margin: 0 0 12px auto; padding: 0 14px; border-radius: 10px; background: var(--surface-variant); color: var(--primary); display: flex; align-items: center; gap: 7px; font-weight: 700; }
+
+/* Keep the longer brand name from crowding header actions on narrow screens. */
+.header-brand{min-width:0}
+.header-brand a{font-size:19px;white-space:nowrap}
+.header-actions{flex-shrink:0}
+@media(max-width:560px){.header-brand a{font-size:clamp(12px,3.6vw,14px)}.header-actions{gap:2px}}
