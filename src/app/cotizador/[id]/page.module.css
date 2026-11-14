@@ -4,7 +4,7 @@
   margin: 0 auto;
   padding: 16px 12px 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
   gap: 10px;
 }
 

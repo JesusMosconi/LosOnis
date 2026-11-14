@@ -30,7 +30,11 @@ export function CotizacionActions({ id }: { id: string }) {
       <div className={styles.actionsWrap}>
         <a className={styles.downloadButton} href={`/api/cotizaciones/${id}/pdf`} download>
           <span className="material-symbols-outlined">picture_as_pdf</span>
-          Descargar PDF
+          PDF con detalle
+        </a>
+        <a className={styles.downloadButton} href={`/api/cotizaciones/${id}/pdf?variant=summary`} download>
+          <span className="material-symbols-outlined">picture_as_pdf</span>
+          PDF sin detalle
         </a>
         <button className={styles.deleteButton} type="button" onClick={() => setConfirming(true)}>
           <span className="material-symbols-outlined">delete</span>
