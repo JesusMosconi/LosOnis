@@ -24,7 +24,7 @@
 }
 
 .confirmation {
-  width: min(420px, 100%);
+  width: min(540px, 100%);
   padding: 28px 22px;
   border: 1px solid #86efac;
   border-radius: 18px;
@@ -53,7 +53,7 @@
   width: 100%;
   margin-top: 8px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 

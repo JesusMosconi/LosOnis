@@ -64,7 +64,11 @@ export function CotizacionesList({
               <button type="button" onClick={closeSavedNotice}>Salir</button>
               <a href={`/api/cotizaciones/${savedId}/pdf`} download>
                 <span className="material-symbols-outlined">picture_as_pdf</span>
-                Descargar PDF
+                PDF con detalle
+              </a>
+              <a href={`/api/cotizaciones/${savedId}/pdf?variant=summary`} download>
+                <span className="material-symbols-outlined">picture_as_pdf</span>
+                PDF sin detalle
               </a>
             </div>
           </section>

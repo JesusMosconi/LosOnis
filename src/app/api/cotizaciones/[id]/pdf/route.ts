@@ -1,13 +1,14 @@
 import { renderToBuffer } from "@react-pdf/renderer";
 import { nombreArchivoCotizacion } from "@/lib/cotizador/formatos";
 import { CotizacionPdf, type CotizacionPdfData } from "@/lib/cotizador/pdf";
+import { pdfVariantFromUrl } from "@/lib/cotizador/pdf-options";
 import { prisma } from "@/lib/prisma";
 import { canAccessCotizador, getSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return Response.json({ error: "No autorizado" }, { status: 401 });
   if (!canAccessCotizador(session)) return Response.json({ error: "Acceso exclusivo para Diego" }, { status: 403 });
@@ -49,13 +50,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       monto: adicional.monto.toFixed(2),
     })),
   };
-  const buffer = await renderToBuffer(CotizacionPdf({ quote: data }));
+  const variant = pdfVariantFromUrl(request.url);
+  const buffer = await renderToBuffer(CotizacionPdf({ quote: data, variant }));
   const bytes = Uint8Array.from(buffer);
 
   return new Response(bytes, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${nombreArchivoCotizacion(quote.createdAt, quote.numero, quote.titulo)}"`,
+      "Content-Disposition": `attachment; filename="${nombreArchivoCotizacion(quote.createdAt, quote.numero, quote.titulo).replace(/\.pdf$/, variant === "summary" ? "-sin-detalle.pdf" : ".pdf")}"`,
       "Content-Length": String(bytes.byteLength),
     },
   });

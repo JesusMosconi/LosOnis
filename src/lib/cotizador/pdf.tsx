@@ -1,6 +1,9 @@
-import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Image as PdfImage, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { EMPRESA } from "@/lib/cotizador/empresa";
 import { formatearCantidad } from "@/lib/cotizador/formatos";
+import type { PdfVariant } from "@/lib/cotizador/pdf-options";
 
 export type CotizacionPdfData = {
   numero: number;
@@ -31,13 +34,14 @@ export type CotizacionPdfData = {
   }>;
 };
 
-const NAVY = "#1C2B3A";
-const ORANGE = "#E8743B";
-const LIGHT_TEXT = "#C9D2DE";
+const NAVY = "#232629";
+const ORANGE = "#087E90";
+const LIGHT_TEXT = "#687075";
 const BORDER = "#E1E4E8";
-const PALE = "#F4F5F7";
+const PALE = "#FAF7EF";
 const MUTED = "#667386";
-const GREEN = "#16804A";
+const GREEN = "#087E90";
+const BRAND_IMAGE = `data:image/png;base64,${readFileSync(path.join(process.cwd(), "public", "pdf-brand.png")).toString("base64")}`;
 
 const styles = StyleSheet.create({
   page: {
@@ -58,17 +62,18 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingRight: 45,
     paddingBottom: 14,
-    paddingLeft: 56,
-    backgroundColor: NAVY,
+    paddingLeft: 45,
+    backgroundColor: PALE,
     flexDirection: "row",
     justifyContent: "space-between",
   },
   orangeEdge: { position: "absolute", top: 0, left: 0, bottom: 0, width: 11, backgroundColor: ORANGE },
-  company: { width: "62%" },
-  companyName: { color: "#FFFFFF", fontFamily: "Helvetica-Bold", fontSize: 20, marginBottom: 5 },
+  brandImage: { width: 83, height: 55, objectFit: "contain", marginRight: 12 },
+  company: { flexGrow: 1 },
+  companyName: { color: NAVY, fontFamily: "Helvetica-Bold", fontSize: 20, marginBottom: 5 },
   companyLine: { color: LIGHT_TEXT, fontSize: 7.5, marginBottom: 3 },
-  quoteMeta: { width: "38%", alignItems: "flex-end" },
-  quoteNumber: { color: "#FFFFFF", fontFamily: "Helvetica-Bold", fontSize: 11, marginBottom: 8 },
+  quoteMeta: { width: "29%", alignItems: "flex-end" },
+  quoteNumber: { color: ORANGE, fontFamily: "Helvetica-Bold", fontSize: 10, marginBottom: 8 },
   metaLine: { color: LIGHT_TEXT, fontSize: 7.5, marginBottom: 3 },
   infoBoxes: {
     position: "absolute",
@@ -123,6 +128,10 @@ const styles = StyleSheet.create({
   itemDetail: { color: MUTED, fontSize: 6.5, marginTop: 2 },
   itemSubtotal: { fontFamily: "Helvetica-Bold" },
   totals: { width: 265, marginTop: 18, marginLeft: "auto", wrap: false },
+  summaryCard: { marginTop: 8, paddingTop: 13, backgroundColor: PALE, borderRadius: 5, wrap: false },
+  summaryTitle: { marginHorizontal: 15, marginBottom: 9, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: BORDER, color: ORANGE, fontFamily: "Helvetica-Bold", fontSize: 9 },
+  summaryRow: { marginHorizontal: 15, minHeight: 29, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  summaryTotal: { marginTop: 9, minHeight: 41, paddingHorizontal: 15, backgroundColor: NAVY, color: "#FFFFFF", flexDirection: "row", alignItems: "center", justifyContent: "space-between", fontFamily: "Helvetica-Bold", fontSize: 10 },
   totalRow: {
     minHeight: 23,
     paddingVertical: 6,
@@ -175,13 +184,13 @@ const formatDate = (value: string | null) => value
   ? new Intl.DateTimeFormat("es-AR", { timeZone: "UTC" }).format(new Date(value))
   : "—";
 
-function Header({ quote }: { quote: CotizacionPdfData }) {
+function Header({ quote, variant }: { quote: CotizacionPdfData; variant: PdfVariant }) {
   return (
     <>
       <View fixed style={styles.brand}>
         <View style={styles.orangeEdge} />
+        <PdfImage src={BRAND_IMAGE} style={styles.brandImage} />
         <View style={styles.company}>
-          <Text style={styles.companyName}>{EMPRESA.nombre}</Text>
           <Text style={styles.companyLine}>{EMPRESA.titular} · Herrería y trabajos en metal</Text>
           <Text style={styles.companyLine}>
             CUIT {EMPRESA.cuit} · {EMPRESA.condicionFiscal} · {EMPRESA.domicilio}
@@ -205,13 +214,13 @@ function Header({ quote }: { quote: CotizacionPdfData }) {
           <Text style={styles.infoBody}>{quote.titulo}</Text>
         </View>
       </View>
-      <View fixed style={styles.tableHeader}>
+      {variant === "detailed" && <View fixed style={styles.tableHeader}>
         <Text style={styles.providerColumn}>PROVEEDOR</Text>
         <Text style={styles.descriptionColumn}>DESCRIPCIÓN</Text>
         <Text style={styles.quantityColumn}>CANT.</Text>
         <Text style={styles.priceColumn}>P. UNIT.</Text>
         <Text style={styles.subtotalColumn}>SUBTOTAL</Text>
-      </View>
+      </View>}
     </>
   );
 }
@@ -230,12 +239,12 @@ function Footer() {
   );
 }
 
-export function CotizacionPdf({ quote }: { quote: CotizacionPdfData }) {
+export function CotizacionPdf({ quote, variant = "detailed" }: { quote: CotizacionPdfData; variant?: PdfVariant }) {
   return (
     <Document title={`Cotización N.° ${quote.numero}`} author={EMPRESA.nombre}>
       <Page size="A4" style={styles.page} wrap>
-        <Header quote={quote} />
-        {quote.items.map((item, index) => (
+        <Header quote={quote} variant={variant} />
+        {variant === "detailed" && quote.items.map((item, index) => (
           <View key={item.id} style={[styles.row, ...(index % 2 ? [styles.evenRow] : [])]} wrap={false}>
             <Text style={[styles.providerColumn, styles.provider]}>{item.urlOrigen ? "ACERCO" : item.nombre}</Text>
             <View style={styles.descriptionColumn}>
@@ -255,7 +264,15 @@ export function CotizacionPdf({ quote }: { quote: CotizacionPdfData }) {
             <Text style={[styles.subtotalColumn, styles.itemSubtotal]}>{formatMoney(item.subtotal)}</Text>
           </View>
         ))}
-        <View style={styles.totals} wrap={false}>
+        {variant === "summary" ? <View style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>RESUMEN DE IMPORTES</Text>
+          <View style={styles.summaryRow}><Text>Subtotal materiales</Text><Text style={styles.totalAmount}>{formatMoney(quote.subtotalMateriales)}</Text></View>
+          <View style={styles.summaryRow}><Text>Insumos y Viáticos</Text><Text style={styles.totalAmount}>{formatMoney(quote.montoGastos)}</Text></View>
+          <View style={styles.summaryRow}><Text>Subtotal costos (A + B)</Text><Text style={styles.totalAmount}>{formatMoney((Number(quote.subtotalMateriales) + Number(quote.montoGastos)).toFixed(2))}</Text></View>
+          <View style={styles.summaryRow}><Text>Mano de obra</Text><Text style={styles.totalAmount}>{formatMoney(quote.montoManoObra)}</Text></View>
+          {quote.adicionales.map((adicional) => <View style={styles.summaryRow} key={adicional.id}><Text>{adicional.descripcion || "Adicional"}</Text><Text style={styles.totalAmount}>{formatMoney(adicional.monto)}</Text></View>)}
+          <View style={styles.summaryTotal}><Text>TOTAL</Text><Text style={styles.finalAmount}>{formatMoney(quote.total)}</Text></View>
+        </View> : <View style={styles.totals} wrap={false}>
           <View style={styles.totalRow}>
             <Text>Subtotal materiales (A)</Text><Text style={styles.totalAmount}>{formatMoney(quote.subtotalMateriales)}</Text>
           </View>
@@ -278,7 +295,7 @@ export function CotizacionPdf({ quote }: { quote: CotizacionPdfData }) {
           <View style={styles.finalTotal}>
             <Text>TOTAL</Text><Text style={styles.finalAmount}>{formatMoney(quote.total)}</Text>
           </View>
-        </View>
+        </View>}
         <Footer />
       </Page>
     </Document>
