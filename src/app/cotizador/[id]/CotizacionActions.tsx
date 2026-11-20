@@ -4,11 +4,27 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 
-export function CotizacionActions({ id }: { id: string }) {
+export function CotizacionActions({ id, pedidoId }: { id: string; pedidoId: string | null }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
+  const [creatingOrder, setCreatingOrder] = useState(false);
+
+  async function confirmQuote() {
+    setCreatingOrder(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/cotizaciones/${id}/confirmar`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "No se pudo crear el pedido");
+      router.push(`/pedidos/${data.id}`);
+      router.refresh();
+    } catch (confirmationError) {
+      setError(confirmationError instanceof Error ? confirmationError.message : "No se pudo crear el pedido");
+      setCreatingOrder(false);
+    }
+  }
 
   async function deleteQuote() {
     setDeleting(true);
@@ -28,6 +44,9 @@ export function CotizacionActions({ id }: { id: string }) {
   return (
     <>
       <div className={styles.actionsWrap}>
+        {pedidoId ? <a className={styles.confirmButton} href={`/pedidos/${pedidoId}`}>Ver pedido</a> : <button className={styles.confirmButton} type="button" disabled={creatingOrder} onClick={confirmQuote}>
+          {creatingOrder ? "Confirmando…" : "Confirmar Cotización"}
+        </button>}
         <a className={styles.downloadButton} href={`/api/cotizaciones/${id}/pdf`} download>
           <span className="material-symbols-outlined">picture_as_pdf</span>
           PDF con detalle
@@ -41,6 +60,7 @@ export function CotizacionActions({ id }: { id: string }) {
           Eliminar
         </button>
       </div>
+      {error && !confirming && <p role="alert">{error}</p>}
       {confirming && (
         <div className={styles.modalBackdrop} role="presentation">
           <section className={styles.confirmModal} role="alertdialog" aria-modal="true" aria-labelledby="delete-title">

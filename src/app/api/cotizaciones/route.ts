@@ -85,15 +85,13 @@ export async function POST(request: Request) {
         WHERE (SELECT COALESCE(MAX("numero"), 0) FROM "Cotizacion") < 104
           AND (SELECT last_value FROM "Cotizacion_numero_seq") <= 104
       `;
-      const { validated, lines, adicionales, totals } = await prepareQuote(body as Record<string, unknown>, tx, {
-        tituloOpcional: true,
-      });
+      const { validated, lines, adicionales, totals } = await prepareQuote(body as Record<string, unknown>, tx);
       const created = await tx.cotizacion.create({
         data: {
           estado: validated.estado,
           clienteNombre: validated.clienteNombre,
           clienteTelefono: validated.clienteTelefono,
-          titulo: validated.titulo ?? "",
+          titulo: validated.titulo,
           descripcion: validated.descripcion,
           notas: validated.notas,
           validaHasta: validated.validaHasta,
@@ -120,19 +118,7 @@ export async function POST(request: Request) {
           adicionales: { orderBy: { orden: "asc" } },
         },
       });
-      if (validated.titulo) return created;
-
-      const date = new Date().toLocaleDateString("es-AR", {
-        timeZone: "America/Argentina/Buenos_Aires",
-      });
-      return tx.cotizacion.update({
-        where: { id: created.id },
-        data: { titulo: `Cotización #${created.numero} - ${date}` },
-        include: {
-          items: { orderBy: { orden: "asc" } },
-          adicionales: { orderBy: { orden: "asc" } },
-        },
-      });
+      return created;
     });
     return Response.json(serializeQuote(quote), { status: 201 });
   } catch (error) {

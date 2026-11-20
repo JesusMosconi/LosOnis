@@ -1,3 +1,3 @@
-import { NextResponse } from "next/server";import { prisma } from "@/lib/prisma";import { getSession } from "@/lib/session";import { parsePedido } from "@/lib/pedido";
+import { NextResponse } from "next/server";import { prisma } from "@/lib/prisma";import { getSession } from "@/lib/session";
 export async function GET(){if(!await getSession())return NextResponse.json({error:"No autorizado"},{status:401});return NextResponse.json(await prisma.pedido.findMany({orderBy:{fechaConfirmacion:"desc"}}));}
-export async function POST(req:Request){if(!await getSession())return NextResponse.json({error:"No autorizado"},{status:401});const data=parsePedido(await req.json());if(!data)return NextResponse.json({error:"Revisá los campos obligatorios"},{status:400});const pedido=await prisma.pedido.create({data:data as never});return NextResponse.json(pedido,{status:201});}
+export async function POST(){if(!await getSession())return NextResponse.json({error:"No autorizado"},{status:401});return NextResponse.json({error:"Los pedidos se crean al confirmar una cotización"},{status:405});}

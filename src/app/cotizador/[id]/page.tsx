@@ -18,6 +18,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     include: {
       items: { orderBy: { orden: "asc" } },
       adicionales: { orderBy: { orden: "asc" } },
+      pedido: { select: { id: true } },
     },
   });
   if (!quote) notFound();
@@ -53,7 +54,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   return (
     <>
       <BackHeader title={quote.titulo} href="/cotizador" />
-      <CotizacionActions id={quote.id} />
+      <CotizacionActions id={quote.id} pedidoId={quote.pedido?.id ?? null} />
       <CotizadorForm id={quote.id} cotizacion={cotizacion} />
     </>
   );
