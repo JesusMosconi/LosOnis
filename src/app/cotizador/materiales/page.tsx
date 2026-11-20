@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function Page() {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (!canAccessCotizador(session)) redirect("/calendario");
+  if (!canAccessCotizador(session)) redirect("/pedidos");
   const rows = await prisma.materialPropio.findMany({
     where: { activo: true },
     orderBy: [{ nombre: "asc" }, { id: "asc" }],
