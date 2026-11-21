@@ -6,7 +6,7 @@ import { canAccessCotizador, getSession } from "@/lib/session";
 export default async function Page() {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (!canAccessCotizador(session)) redirect("/calendario");
+  if (!canAccessCotizador(session)) redirect("/pedidos");
 
   return (
     <>

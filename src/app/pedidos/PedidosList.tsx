@@ -20,7 +20,9 @@ const monthKey = (value: string) => new Date(value).toISOString().slice(0, 7);
 
 export function PedidosList({ pedidos }: { pedidos: P[] }) {
   const [q, setQ] = useState("");
-  const [month, setMonth] = useState("");
+  const monthParts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Argentina/Buenos_Aires", year: "numeric", month: "2-digit" }).formatToParts(new Date());
+  const currentMonth = `${monthParts.find(part => part.type === "year")?.value}-${monthParts.find(part => part.type === "month")?.value}`;
+  const [month, setMonth] = useState(currentMonth);
   const [status, setStatus] = useState("");
   const gridRef = useRef<HTMLElement>(null);
   const previousPositions = useRef(new Map<string, DOMRect>());
@@ -95,7 +97,7 @@ export function PedidosList({ pedidos }: { pedidos: P[] }) {
         </select>
       </label>
       <div className="orders-summary" aria-live="polite" aria-atomic="true">
-        <span>Total de pedidos visibles</span>
+        <span>Total de pedidos del mes{month ? " seleccionado" : ""}</span>
         <strong>{money.format(total)}</strong>
       </div>
     </section>

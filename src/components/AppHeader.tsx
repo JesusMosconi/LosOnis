@@ -6,9 +6,8 @@ export async function AppHeader() {
   const session = await getSession();
   return (
     <header className="app-header">
-      <div className="header-brand"><UserMenu nombre={session?.nombre ?? ""} /><Link href="/calendario">Herrería L&J</Link></div>
+      <div className="header-brand"><UserMenu nombre={session?.nombre ?? ""} /><Link href="/pedidos">Herrería L&J</Link></div>
       <nav className="header-actions">
-        <Link aria-label="Ir al calendario" className="today" href="/calendario"><span className="material-symbols-outlined">calendar_today</span></Link>
         <Link aria-label="Ir a pedidos" className="header-pedidos" href="/pedidos"><span className="material-symbols-outlined">assignment</span></Link>
         {canAccessCotizador(session) && <Link aria-label="Ir a cotizaciones" className="header-cotizador" href="/cotizador"><span className="material-symbols-outlined">request_quote</span></Link>}
         <Link className="header-new-order" href="/pedidos/nuevo"><span className="material-symbols-outlined">add</span><span>Nuevo pedido</span></Link>
