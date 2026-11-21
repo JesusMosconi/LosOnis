@@ -69,7 +69,7 @@ export function PedidosList({ pedidos, canCreateQuote }: { pedidos: P[]; canCrea
     (!month || monthKey(p.fechaConfirmacion) === month) &&
     (!status || p.estado === status));
   const total = pedidos
-    .filter(p => p.estado === "EN_PROCESO")
+    .filter(p => p.estado === "EN_PROCESO" && (!month || monthKey(p.fechaConfirmacion) === month))
     .reduce((sum, p) => sum + Math.round(Number(p.montoTotal) * 100), 0) / 100;
 
   return <>
