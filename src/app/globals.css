@@ -57,3 +57,15 @@ body{font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;text-ren
 .header-brand a{font-size:19px;white-space:nowrap}
 .header-actions{flex-shrink:0}
 @media(max-width:560px){.header-brand a{font-size:clamp(12px,3.6vw,14px)}.header-actions{gap:2px}}
+
+/* Keep long customer and quote titles inside narrow cards and detail headers. */
+.order-card header{align-items:flex-start;min-width:0}
+.order-card header h2{min-width:0;overflow-wrap:anywhere}
+.order-card .status{flex:0 0 auto;align-self:flex-start}
+.order-card p,.order-card footer strong{min-width:0;overflow-wrap:anywhere}
+.order-card footer>span{min-width:0}
+.back-header{gap:8px}
+.back-header>a,.back-header .header-spacer{flex:0 0 48px}
+.back-header h1{min-width:0;flex:1;text-align:center;font-size:clamp(16px,4vw,20px);line-height:1.25;overflow-wrap:anywhere}
+.amount{gap:12px;flex-wrap:wrap}
+.amount strong{min-width:0;overflow-wrap:anywhere}

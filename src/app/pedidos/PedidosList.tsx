@@ -69,7 +69,7 @@ export function PedidosList({ pedidos, canCreateQuote }: { pedidos: P[]; canCrea
     (!month || monthKey(p.fechaConfirmacion) === month) &&
     (!status || p.estado === status));
   const total = pedidos
-    .filter(p => !month || monthKey(p.fechaConfirmacion) === month)
+    .filter(p => p.estado === "EN_PROCESO")
     .reduce((sum, p) => sum + Math.round(Number(p.montoTotal) * 100), 0) / 100;
 
   return <>
@@ -97,7 +97,7 @@ export function PedidosList({ pedidos, canCreateQuote }: { pedidos: P[]; canCrea
         </select>
       </label>
       <div className="orders-summary" aria-live="polite" aria-atomic="true">
-        <span>Total</span>
+        <span>Total pendiente</span>
         <strong>{money.format(total)}</strong>
       </div>
     </section>
