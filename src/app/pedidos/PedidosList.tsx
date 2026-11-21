@@ -6,7 +6,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 type P = {
   id: string;
   nombre: string;
-  tipoTrabajo: string;
+  titulo: string;
   descripcion: string | null;
   fechaConfirmacion: string;
   montoTotal: string;
@@ -18,10 +18,10 @@ const date = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "short", 
 const monthLabel = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric", timeZone: "UTC" });
 const monthKey = (value: string) => new Date(value).toISOString().slice(0, 7);
 
-export function PedidosList({ pedidos }: { pedidos: P[] }) {
+export function PedidosList({ pedidos, canCreateQuote }: { pedidos: P[]; canCreateQuote: boolean }) {
   const [q, setQ] = useState("");
   const [month, setMonth] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState("EN_PROCESO");
   const gridRef = useRef<HTMLElement>(null);
   const previousPositions = useRef(new Map<string, DOMRect>());
   const animations = useRef<Animation[]>([]);
@@ -68,7 +68,9 @@ export function PedidosList({ pedidos }: { pedidos: P[] }) {
     p.nombre.toLocaleLowerCase("es").includes(q.toLocaleLowerCase("es")) &&
     (!month || monthKey(p.fechaConfirmacion) === month) &&
     (!status || p.estado === status));
-  const total = shown.reduce((sum, p) => sum + Math.round(Number(p.montoTotal) * 100), 0) / 100;
+  const total = pedidos
+    .filter(p => !month || monthKey(p.fechaConfirmacion) === month)
+    .reduce((sum, p) => sum + Math.round(Number(p.montoTotal) * 100), 0) / 100;
 
   return <>
     <section className="orders-tools">
@@ -76,7 +78,7 @@ export function PedidosList({ pedidos }: { pedidos: P[] }) {
         <span className="material-symbols-outlined">search</span>
         <input value={q} onChange={e => { capturePositions(); setQ(e.target.value); }} placeholder="Buscar pedidos..." />
       </div>
-      <Link className="new-order" href="/pedidos/nuevo"><span className="material-symbols-outlined">add</span>Nuevo pedido</Link>
+      {canCreateQuote && <Link className="new-order" href="/cotizador/nueva"><span className="material-symbols-outlined">add</span>Nueva cotización</Link>}
     </section>
     <section className="orders-filters" aria-label="Filtros de pedidos">
       <label>
@@ -95,7 +97,7 @@ export function PedidosList({ pedidos }: { pedidos: P[] }) {
         </select>
       </label>
       <div className="orders-summary" aria-live="polite" aria-atomic="true">
-        <span>Total de pedidos visibles</span>
+        <span>Total</span>
         <strong>{money.format(total)}</strong>
       </div>
     </section>
@@ -107,7 +109,7 @@ export function PedidosList({ pedidos }: { pedidos: P[] }) {
             <h2>{p.nombre}</h2>
             <span className={`status ${p.estado.toLowerCase()}`}>{p.estado === "ENTREGADO" ? "Entregado" : "En proceso"}</span>
           </header>
-          <p>{p.descripcion || p.tipoTrabajo}</p>
+          <p>{p.titulo}</p>
           <footer>
             <span><span className="material-symbols-outlined">{p.estado === "ENTREGADO" ? "check_circle" : "calendar_today"}</span>{date.format(new Date(p.fechaConfirmacion))}</span>
             <strong>{money.format(Number(p.montoTotal))}</strong>

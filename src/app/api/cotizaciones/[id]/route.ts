@@ -36,6 +36,7 @@ export async function PUT(request: Request, context: Context) {
     if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("Solicitud inválida");
     const { id } = await context.params;
     const quote = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${id}))`;
       const exists = await tx.cotizacion.findUnique({ where: { id }, select: { id: true } });
       if (!exists) {
         throw new Prisma.PrismaClientKnownRequestError("Cotización no encontrada", {
@@ -46,7 +47,7 @@ export async function PUT(request: Request, context: Context) {
       const { validated, lines, adicionales, totals } = await prepareQuote(body as Record<string, unknown>, tx);
       await tx.itemCotizacion.deleteMany({ where: { cotizacionId: id } });
       await tx.adicionalCotizacion.deleteMany({ where: { cotizacionId: id } });
-      return tx.cotizacion.update({
+      const updated = await tx.cotizacion.update({
         where: { id },
         data: {
           estado: validated.estado,
@@ -78,6 +79,17 @@ export async function PUT(request: Request, context: Context) {
           adicionales: { orderBy: { orden: "asc" } },
         },
       });
+      await tx.pedido.updateMany({
+        where: { cotizacionId: id },
+        data: {
+          nombre: updated.clienteNombre,
+          telefono: updated.clienteTelefono,
+          titulo: updated.titulo,
+          descripcion: updated.descripcion,
+          montoTotal: updated.montoManoObra,
+        },
+      });
+      return updated;
     });
     return Response.json(serializeQuote(quote));
   } catch (error) {
@@ -95,7 +107,10 @@ export async function DELETE(_request: Request, context: Context) {
   if (!canAccessCotizador(session)) return Response.json({ error: "Acceso exclusivo para Diego" }, { status: 403 });
   try {
     const { id } = await context.params;
-    await prisma.cotizacion.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${id}))`;
+      await tx.cotizacion.delete({ where: { id } });
+    });
     return Response.json({ ok: true });
   } catch (error) {
     if (isNotFound(error)) return Response.json({ error: "Cotización no encontrada" }, { status: 404 });

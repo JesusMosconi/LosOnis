@@ -163,6 +163,7 @@ model Cotizacion {
   creadaPor          Usuario?              @relation("CotizacionCreadaPor", fields: [creadaPorId], references: [id], onDelete: SetNull)
   items              ItemCotizacion[]
   adicionales        AdicionalCotizacion[]
+  pedido             Pedido?
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
 
@@ -213,7 +214,9 @@ model Pedido {
   id                String       @id @default(cuid())
   nombre            String
   telefono          String?
-  tipoTrabajo       String
+  titulo            String
+  cotizacionId      String?      @unique
+  cotizacion        Cotizacion?  @relation(fields: [cotizacionId], references: [id], onDelete: SetNull)
   descripcion       String?
   fechaConfirmacion DateTime     @default(now()) @db.Date
   montoTotal        Decimal      @db.Decimal(12, 2)

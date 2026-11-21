@@ -43,7 +43,7 @@ function cantidad(value: unknown, field: string) {
   return parsed;
 }
 
-export function validateQuoteBody(body: Record<string, unknown>, tituloOpcional = false) {
+export function validateQuoteBody(body: Record<string, unknown>) {
   const rawItems = body.items;
   if (!Array.isArray(rawItems) || rawItems.length === 0 || rawItems.length > 200) {
     throw new Error("La cotización debe tener entre 1 y 200 materiales");
@@ -65,7 +65,7 @@ export function validateQuoteBody(body: Record<string, unknown>, tituloOpcional 
     inputAdicionales: rawAdicionales as InputAdicional[],
     clienteNombre: text(body.clienteNombre, 160, true) as string,
     clienteTelefono: text(body.clienteTelefono, 50),
-    titulo: text(body.titulo, 200, !tituloOpcional) ?? "",
+    titulo: text(body.titulo, 200, true) as string,
     descripcion: text(body.descripcion, 4000),
     notas: text(body.notas, 4000),
     estado: body.estado === "FINALIZADA" ? ("FINALIZADA" as const) : ("BORRADOR" as const),
@@ -78,9 +78,8 @@ export function validateQuoteBody(body: Record<string, unknown>, tituloOpcional 
 export async function prepareQuote(
   body: Record<string, unknown>,
   tx: Prisma.TransactionClient,
-  options: { tituloOpcional?: boolean } = {},
 ) {
-  const validated = validateQuoteBody(body, options.tituloOpcional);
+  const validated = validateQuoteBody(body);
   const catalogIds = validated.inputItems
     .map((item) => item.itemCatalogoId)
     .filter((id): id is string => typeof id === "string" && Boolean(id));

@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function Page({ searchParams }: { searchParams: Promise<{ creada?: string; actualizada?: string }> }) {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (!canAccessCotizador(session)) redirect("/calendario");
+  if (!canAccessCotizador(session)) redirect("/pedidos");
   const { creada, actualizada } = await searchParams;
   const rows = await prisma.cotizacion.findMany({
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -21,6 +21,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
       titulo: true,
       clienteNombre: true,
       estado: true,
+      pedido: { select: { id: true } },
       total: true,
       createdAt: true,
     },
@@ -28,6 +29,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
   const cotizaciones = rows.map((quote) => ({
     ...quote,
     total: quote.total.toString(),
+    pedidoId: quote.pedido?.id ?? null,
     createdAt: quote.createdAt.toISOString(),
   }));
 

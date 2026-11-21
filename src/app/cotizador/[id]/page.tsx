@@ -11,13 +11,14 @@ export const dynamic = "force-dynamic";
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (!canAccessCotizador(session)) redirect("/calendario");
+  if (!canAccessCotizador(session)) redirect("/pedidos");
   const { id } = await params;
   const quote = await prisma.cotizacion.findUnique({
     where: { id },
     include: {
       items: { orderBy: { orden: "asc" } },
       adicionales: { orderBy: { orden: "asc" } },
+      pedido: { select: { id: true } },
     },
   });
   if (!quote) notFound();
@@ -53,7 +54,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   return (
     <>
       <BackHeader title={quote.titulo} href="/cotizador" />
-      <CotizacionActions id={quote.id} />
+      <CotizacionActions id={quote.id} pedidoId={quote.pedido?.id ?? null} />
       <CotizadorForm id={quote.id} cotizacion={cotizacion} />
     </>
   );
