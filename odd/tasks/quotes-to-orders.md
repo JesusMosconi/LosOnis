@@ -1,5 +1,5 @@
 # Quotes to orders
-Branches: feat/eliminar-calendario (calendar commit 3f23be8), then feat/pedidos-desde-cotizacion (quote/order commit pending). Delivery: ask-on-risk. Runner: npm run cotizador:test, npm run lint, npm run build.
+Branches: feat/eliminar-calendario (calendar commit 3f23be8), then feat/pedidos-desde-cotizacion (quote/order commit d12848f). Delivery: ask-on-risk. Runner: npm run cotizador:test, npm run lint, npm run build.
 
 ## Specs
 - S1: "No vamos a utilizar mas el calendario de inicio"; clarification: "si es mas facil ocultarlo que eliminar todo, entonces lo ocultemos".
@@ -12,8 +12,8 @@ Branches: feat/eliminar-calendario (calendar commit 3f23be8), then feat/pedidos-
 
 ## Tasks
 - T1 [S1-S2] inline: hide calendar entry points and show current-month order amount; verified and committed as 3f23be8.
-- T2 [S3-S6] inline: require title, link quote confirmation to order creation, update order schema and UI; implemented locally, authorized migrations applied on feat/pedidos-desde-cotizacion Neon, transactional runtime verification pending; commit pending.
-- T3 [S1-S7] inline: verify and report without push or merge; lint, 27 tests, build, Prisma schema validation, migration status, data counts and independent blocker recheck passed; live quote-to-order write check pending authorization.
+- T2 [S3-S6] inline: require title, link quote confirmation to order creation, update order schema and UI; verified locally and with rollback-only database test, committed as d12848f. Authenticated HTTP route was not exercised against Neon.
+- T3 [S1-S7] inline: verify and report without push or merge; lint, 27 tests, build, Prisma schema validation, migration status, data counts and independent blocker recheck passed. Candidate review declined by user; no push or merge.
 
 ## Log
 - L1: User requested calendar removal/hiding, quote-to-order automation, feature/develop branches, and later authorized implementation with approval before push or merge. Exact prompts are recorded in Engram prompt history; credentials intentionally omitted here.
@@ -25,3 +25,4 @@ Branches: feat/eliminar-calendario (calendar commit 3f23be8), then feat/pedidos-
 - L7: User authorized the two earlier sequence migrations. Prisma migrate deploy applied all three pending migrations successfully to feat/pedidos-desde-cotizacion Neon, and migrate status reports the schema up to date. Read-only counts show four legacy orders, all four with a non-null title and zero linked to a quote, as expected. No test records were created and no other remote database was touched.
 - L8: User authorized a rollback-only write test. A test cotizacion and linked pedido were inserted inside a transaction, duplicate quote linkage was rejected, then the transaction was rolled back; a subsequent query confirmed zero test rows remained. This tests database constraints and mapping, not the authenticated HTTP route.
 - L9: The calendar commit 3f23be8 was assessed as medium/under_budget with untracked files excluded. The feature branch feat/pedidos-desde-cotizacion was created locally from that commit; no push or merge occurred.
+- L10: The quote/order commit d12848f was assessed high because it changes persisted data. User declined native review for this candidate only; review mode remains enabled. Rollback-only Neon test passed, but the authenticated HTTP handler was not exercised against Neon. Both local branches remain unpublished.
