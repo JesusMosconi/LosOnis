@@ -4,10 +4,11 @@
   margin: 0 auto;
   padding: 16px 12px 0;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
+.confirmButton,
 .downloadButton,
 .deleteButton {
   min-height: 48px;
@@ -22,6 +23,12 @@
   gap: 8px;
   font-weight: 700;
   box-shadow: 0 1px 3px #0000000d;
+}
+
+.confirmButton {
+  background: var(--primary-container);
+  color: #fff;
+  cursor: pointer;
 }
 
 .deleteButton {

@@ -6,7 +6,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 type P = {
   id: string;
   nombre: string;
-  tipoTrabajo: string;
+  titulo: string;
   descripcion: string | null;
   fechaConfirmacion: string;
   montoTotal: string;
@@ -18,7 +18,7 @@ const date = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "short", 
 const monthLabel = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric", timeZone: "UTC" });
 const monthKey = (value: string) => new Date(value).toISOString().slice(0, 7);
 
-export function PedidosList({ pedidos }: { pedidos: P[] }) {
+export function PedidosList({ pedidos, canCreateQuote }: { pedidos: P[]; canCreateQuote: boolean }) {
   const [q, setQ] = useState("");
   const monthParts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Argentina/Buenos_Aires", year: "numeric", month: "2-digit" }).formatToParts(new Date());
   const currentMonth = `${monthParts.find(part => part.type === "year")?.value}-${monthParts.find(part => part.type === "month")?.value}`;
@@ -78,7 +78,7 @@ export function PedidosList({ pedidos }: { pedidos: P[] }) {
         <span className="material-symbols-outlined">search</span>
         <input value={q} onChange={e => { capturePositions(); setQ(e.target.value); }} placeholder="Buscar pedidos..." />
       </div>
-      <Link className="new-order" href="/pedidos/nuevo"><span className="material-symbols-outlined">add</span>Nuevo pedido</Link>
+      {canCreateQuote && <Link className="new-order" href="/cotizador/nueva"><span className="material-symbols-outlined">add</span>Nueva cotización</Link>}
     </section>
     <section className="orders-filters" aria-label="Filtros de pedidos">
       <label>
@@ -109,7 +109,7 @@ export function PedidosList({ pedidos }: { pedidos: P[] }) {
             <h2>{p.nombre}</h2>
             <span className={`status ${p.estado.toLowerCase()}`}>{p.estado === "ENTREGADO" ? "Entregado" : "En proceso"}</span>
           </header>
-          <p>{p.descripcion || p.tipoTrabajo}</p>
+          <p>{p.titulo}</p>
           <footer>
             <span><span className="material-symbols-outlined">{p.estado === "ENTREGADO" ? "check_circle" : "calendar_today"}</span>{date.format(new Date(p.fechaConfirmacion))}</span>
             <strong>{money.format(Number(p.montoTotal))}</strong>

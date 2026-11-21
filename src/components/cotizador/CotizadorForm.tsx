@@ -368,7 +368,7 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
         method: id ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          titulo: titulo.trim() || (id ? cotizacion?.titulo : null),
+          titulo: titulo.trim(),
           clienteNombre,
           clienteTelefono,
           descripcion: cotizacion?.descripcion ?? null,
@@ -427,7 +427,8 @@ export function CotizadorForm({ cotizacion, id }: { cotizacion?: CotizadorFormDa
           <input
             value={titulo}
             onChange={(event) => setTitulo(event.target.value)}
-            placeholder="Se genera automáticamente si lo dejás vacío"
+            placeholder="Ingresar título"
+            required
           />
         </label>
       </section>
