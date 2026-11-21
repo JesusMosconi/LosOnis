@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Preserve order task functionality while hiding it from order details. */
+.detail-main > .tasks-placeholder { display: none; }
+
 .calendar-heading{flex-wrap:wrap;row-gap:12px}
 .calendar-heading>.calendar-month-total{flex:0 0 100%;display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:12px;border-top:1px solid var(--outline-variant)}
 .calendar-month-total>span{font-size:13px;color:var(--on-surface-variant)}

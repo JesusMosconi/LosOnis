@@ -20,10 +20,8 @@ const monthKey = (value: string) => new Date(value).toISOString().slice(0, 7);
 
 export function PedidosList({ pedidos, canCreateQuote }: { pedidos: P[]; canCreateQuote: boolean }) {
   const [q, setQ] = useState("");
-  const monthParts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Argentina/Buenos_Aires", year: "numeric", month: "2-digit" }).formatToParts(new Date());
-  const currentMonth = `${monthParts.find(part => part.type === "year")?.value}-${monthParts.find(part => part.type === "month")?.value}`;
-  const [month, setMonth] = useState(currentMonth);
-  const [status, setStatus] = useState("");
+  const [month, setMonth] = useState("");
+  const [status, setStatus] = useState("EN_PROCESO");
   const gridRef = useRef<HTMLElement>(null);
   const previousPositions = useRef(new Map<string, DOMRect>());
   const animations = useRef<Animation[]>([]);
@@ -70,7 +68,9 @@ export function PedidosList({ pedidos, canCreateQuote }: { pedidos: P[]; canCrea
     p.nombre.toLocaleLowerCase("es").includes(q.toLocaleLowerCase("es")) &&
     (!month || monthKey(p.fechaConfirmacion) === month) &&
     (!status || p.estado === status));
-  const total = shown.reduce((sum, p) => sum + Math.round(Number(p.montoTotal) * 100), 0) / 100;
+  const total = pedidos
+    .filter(p => !month || monthKey(p.fechaConfirmacion) === month)
+    .reduce((sum, p) => sum + Math.round(Number(p.montoTotal) * 100), 0) / 100;
 
   return <>
     <section className="orders-tools">
@@ -97,7 +97,7 @@ export function PedidosList({ pedidos, canCreateQuote }: { pedidos: P[]; canCrea
         </select>
       </label>
       <div className="orders-summary" aria-live="polite" aria-atomic="true">
-        <span>Total de pedidos del mes{month ? " seleccionado" : ""}</span>
+        <span>Total</span>
         <strong>{money.format(total)}</strong>
       </div>
     </section>

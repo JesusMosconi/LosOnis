@@ -21,6 +21,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
       titulo: true,
       clienteNombre: true,
       estado: true,
+      pedido: { select: { id: true } },
       total: true,
       createdAt: true,
     },
@@ -28,6 +29,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
   const cotizaciones = rows.map((quote) => ({
     ...quote,
     total: quote.total.toString(),
+    pedidoId: quote.pedido?.id ?? null,
     createdAt: quote.createdAt.toISOString(),
   }));
 

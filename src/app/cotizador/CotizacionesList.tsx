@@ -11,6 +11,7 @@ export type CotizacionListItem = {
   titulo: string;
   clienteNombre: string;
   estado: "BORRADOR" | "FINALIZADA" | "ANULADA";
+  pedidoId: string | null;
   total: string;
   createdAt: string;
 };
@@ -108,7 +109,7 @@ export function CotizacionesList({
                     {!automaticTitle && <small>{reference}</small>}
                   </div>
                   <span className={`status ${finalized ? "entregado" : styles.quoteStatus}`}>
-                    {stateLabel[quote.estado]}
+                    {quote.pedidoId ? "Confirmada" : stateLabel[quote.estado]}
                   </span>
                 </header>
                 <p>{quote.clienteNombre}</p>

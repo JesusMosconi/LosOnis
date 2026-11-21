@@ -44,9 +44,6 @@ export function CotizacionActions({ id, pedidoId }: { id: string; pedidoId: stri
   return (
     <>
       <div className={styles.actionsWrap}>
-        {pedidoId ? <a className={styles.confirmButton} href={`/pedidos/${pedidoId}`}>Ver pedido</a> : <button className={styles.confirmButton} type="button" disabled={creatingOrder} onClick={confirmQuote}>
-          {creatingOrder ? "Confirmando…" : "Confirmar Cotización"}
-        </button>}
         <a className={styles.downloadButton} href={`/api/cotizaciones/${id}/pdf`} download>
           <span className="material-symbols-outlined">picture_as_pdf</span>
           PDF con detalle
@@ -59,6 +56,9 @@ export function CotizacionActions({ id, pedidoId }: { id: string; pedidoId: stri
           <span className="material-symbols-outlined">delete</span>
           Eliminar
         </button>
+        {pedidoId ? <a className={styles.confirmButton} href={`/pedidos/${pedidoId}`}>Ver pedido</a> : <button className={styles.confirmButton} type="button" disabled={creatingOrder} onClick={confirmQuote}>
+          {creatingOrder ? "Confirmando…" : "Confirmar Cotización"}
+        </button>}
       </div>
       {error && !confirming && <p role="alert">{error}</p>}
       {confirming && (

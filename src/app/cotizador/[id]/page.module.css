@@ -26,10 +26,14 @@
 }
 
 .confirmButton {
-  background: var(--primary-container);
+  border-color: #15803d;
+  background: #15803d;
   color: #fff;
   cursor: pointer;
 }
+
+.confirmButton:hover { background: #166534; }
+.confirmButton:disabled { opacity: .6; cursor: wait; }
 
 .deleteButton {
   padding: 0 18px;
@@ -81,7 +85,8 @@
 }
 
 @media (max-width: 440px) {
-  .actionsWrap { grid-template-columns: 1fr; }
+  .actionsWrap { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .confirmButton, .downloadButton, .deleteButton { padding: 8px; text-align: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {
