@@ -12,8 +12,8 @@ Branches: feat/eliminar-calendario (calendar commit 3f23be8), then feat/pedidos-
 
 ## Tasks
 - T1 [S1-S2] inline: hide calendar entry points and show current-month order amount; verified and committed as 3f23be8.
-- T2 [S3-S6] inline: require title, link quote confirmation to order creation, update order schema and UI; verified locally and with rollback-only database test, committed as d12848f. Authenticated HTTP route was not exercised against Neon.
-- T3 [S1-S7] inline: verify and report without push or merge; lint, 27 tests, build, Prisma schema validation, migration status, data counts and independent blocker recheck passed. Candidate review declined by user; no push or merge.
+- T2 [S3-S6] inline: require title, link quote confirmation to order creation, update order schema and UI; verified locally, with rollback-only database test, and with an authenticated HTTP flow against test Neon; committed as d12848f.
+- T3 [S1-S7] inline: verify and report without push or merge; lint, 27 tests, build, Prisma schema validation, migration status, data counts, independent blocker recheck and authenticated HTTP flow passed. Test rows removed; candidate review declined by user; no push or merge.
 
 ## Log
 - L1: User requested calendar removal/hiding, quote-to-order automation, feature/develop branches, and later authorized implementation with approval before push or merge. Exact prompts are recorded in Engram prompt history; credentials intentionally omitted here.
@@ -26,3 +26,4 @@ Branches: feat/eliminar-calendario (calendar commit 3f23be8), then feat/pedidos-
 - L8: User authorized a rollback-only write test. A test cotizacion and linked pedido were inserted inside a transaction, duplicate quote linkage was rejected, then the transaction was rolled back; a subsequent query confirmed zero test rows remained. This tests database constraints and mapping, not the authenticated HTTP route.
 - L9: The calendar commit 3f23be8 was assessed as medium/under_budget with untracked files excluded. The feature branch feat/pedidos-desde-cotizacion was created locally from that commit; no push or merge occurred.
 - L10: The quote/order commit d12848f was assessed high because it changes persisted data. User declined native review for this candidate only; review mode remains enabled. Rollback-only Neon test passed, but the authenticated HTTP handler was not exercised against Neon. Both local branches remain unpublished.
+- L11: User authorized an authenticated HTTP test with creation and cleanup of only test quote/order data on feat/pedidos-desde-cotizacion Neon. Via a local Next server and Diego's user-entered PIN, created a test quote (materials 1000, expenses 200, labor 960, total 2160), edited its title, confirmed it into one order with labor-only amount 960, then edited the quote again and verified the linked order title and labor amount updated to 1080 rather than quote total 2280. Deleted only the test order and quote in one guarded transaction and verified zero test rows remain. The quote number sequence may have advanced despite record cleanup; it was not rewound. Local server stopped. No push or merge.
